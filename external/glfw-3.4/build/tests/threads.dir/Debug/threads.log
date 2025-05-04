@@ -1,0 +1,5 @@
+﻿  Building Custom Rule C:/Users/iljat/.cpp-libs/glfw-3.4/tests/CMakeLists.txt
+  threads.c
+  tinycthread.c
+  Generating Code...
+  threads.vcxproj -> C:\Users\iljat\.cpp-libs\glfw-3.4\build\tests\Debug\threads.exe

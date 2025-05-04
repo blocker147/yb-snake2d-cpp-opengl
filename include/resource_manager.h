@@ -1,0 +1,47 @@
+#ifndef SNAKE2D_RESOURCE_MANAGER_H
+#define SNAKE2D_RESOURCE_MANAGER_H
+
+#include <stb_image.h>
+
+#include <map>
+
+#include "shader.h"
+#include "file_utils.h"
+
+namespace Snake2d {
+	enum ShaderType { CELL, MENU };
+	class ShaderManager {
+	private:
+		std::map<ShaderType, std::pair<Shader*, unsigned int>> shaders;
+
+		void createCellShader(int width, int height);
+		void createMenuShader();
+	public:
+		ShaderManager(int width, int height);
+
+		std::pair<Shader*, unsigned int> getShaderAndVAO(ShaderType type) {	return shaders[type]; }
+	};
+
+	enum TextureType {
+		APPLE,
+		SNAKE_HEAD,
+		SNAKE_BODY_STRAIGHT,
+		SNAKE_BODY_ROTATED,
+		SNAKE_TAIL,
+		SNAKE_CORPSE,
+		SNAKE_BONE,
+		APPLE_LINE_SPAWNER
+	};
+	class TextureManager {
+	private:
+		std::map<TextureType, unsigned int> textures;
+
+		void loadTexture(TextureType type, const char* filename, bool flipVertically = true);
+	public:
+		TextureManager();
+
+		unsigned int getTextureId(TextureType type) { return textures[type]; }
+	};
+}
+
+#endif
