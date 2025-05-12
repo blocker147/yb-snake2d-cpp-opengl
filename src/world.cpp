@@ -174,6 +174,8 @@ namespace Snake2d {
 			Coordinate prevCoord = getCoordinate(prev->index);
 
 			// Sets current Position to: TL, TR, BR, BL; TB, LR
+			// Where crntPos[0] is Position relative to next SnakeBody (in SnakeHead direction)
+			// and crntPos[1] is Position relative to prev SnakeBody (in SnakeTail direction)
 			Position crntPos[2]{};
 			if		(crnt->index == next->index - 1)
 				crntPos[0] = Position::Left;
@@ -309,6 +311,20 @@ namespace Snake2d {
 			tail->rotation = GameObject::Rotation::DEGREES_270;
 		else if (tail->index == beforeTail->index + width)
 			tail->rotation = GameObject::Rotation::DEGREES_90;
+		else {
+			Coordinate tailCoordinate = getCoordinate(tail->index);
+			Coordinate beforeTailCoordinate = getCoordinate(beforeTail->index);
+			if ((beforeTailCoordinate.x + 1) % width == tailCoordinate.x && beforeTailCoordinate.y == tailCoordinate.y)
+				tail->rotation = GameObject::Rotation::DEGREES_0;
+			else if ((beforeTailCoordinate.x - 1 + width) % width == tailCoordinate.x && beforeTailCoordinate.y == tailCoordinate.y)
+				tail->rotation = GameObject::Rotation::DEGREES_180;
+			else if ((beforeTailCoordinate.y + 1) % height == tailCoordinate.y && beforeTailCoordinate.x == tailCoordinate.x)
+				tail->rotation = GameObject::Rotation::DEGREES_90;
+			else if ((beforeTailCoordinate.y - 1 + height) % height == tailCoordinate.y && beforeTailCoordinate.x == tailCoordinate.x)
+				tail->rotation = GameObject::Rotation::DEGREES_270;
+			else
+				std::cout << "WARNING: tail ROTATION not specified: " << std::endl;
+		}
 	}
 
 	void World::assertOnlyOneHead() {

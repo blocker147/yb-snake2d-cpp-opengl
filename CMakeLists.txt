@@ -13,7 +13,6 @@ add_executable(Snake-Game ${SOURCES} ${GLAD_SRC} ${STB_IMAGE_SRC})
 find_package(OpenGL REQUIRED)
 target_link_libraries(Snake-Game PRIVATE glfw ${OPENGL_gl_LIBRARY})
 target_link_libraries(Snake-Game PRIVATE freetype)
-#target_link_directories(Snake-Game PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 # Specify where to find header files
 target_include_directories(Snake-Game PRIVATE
@@ -22,7 +21,6 @@ target_include_directories(Snake-Game PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/external/glfw-3.4/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external
     ${CMAKE_CURRENT_SOURCE_DIR}/external/stb-image/include
-    #${CMAKE_CURRENT_SOURCE_DIR}/external/freetype-2.6.1/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/freetype-2.13.3/include
 )
 
