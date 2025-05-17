@@ -41,7 +41,9 @@ int main()
 	fontRenderer.loadFont(Snake2d::FontType::ANTONIO_BOLD, "Antonio-Bold.ttf");
 	Snake2d::ShaderManager* shaderManager = new Snake2d::ShaderManager(WORLD_WIDTH, WORLD_HEIGHT);
 	Snake2d::TextureManager textureManager;
-
+	Snake2d::AudioManager audioManager;
+	audioManager.play(Snake2d::AudioType::ANY_MENU_BACKGROUND_MUSIC, true);
+	
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);

@@ -7,6 +7,7 @@
 
 #include "shader.h"
 #include "file_utils.h"
+#include <irrklang/irrKlang.h>
 
 namespace Snake2d {
 	enum ShaderType { CELL, MENU };
@@ -41,6 +42,20 @@ namespace Snake2d {
 		TextureManager();
 
 		unsigned int getTextureId(TextureType type) { return textures[type]; }
+	};
+
+	enum AudioType { ANY_MENU_BACKGROUND_MUSIC };
+	class AudioManager {
+	private:
+		irrklang::ISoundEngine* soundEngine;
+		std::map<AudioType, std::string> audios;
+	public:
+		AudioManager();
+		~AudioManager() {
+			delete soundEngine;
+		}
+
+		void play(AudioType type, bool playLooped = false);
 	};
 }
 

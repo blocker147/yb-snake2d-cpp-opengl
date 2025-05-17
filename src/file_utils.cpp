@@ -8,10 +8,9 @@ namespace Snake2d {
 	const std::string prefix = "";
 	const std::filesystem::path BASE_PATH = std::filesystem::current_path();
 #endif
-
-	const std::string SHADER_DIR = prefix + "resources/shaders/";
 	// TODO: not the best solution
 	const std::string FONT_DIR = (BASE_PATH / "resources" / "fonts/").string();
+	const std::string SHADER_DIR = prefix + "resources/shaders/";
 	const std::string TEXTURE_DIR = prefix + "resources/textures/";
-
+	const std::string AUDIO_DIR = prefix + "resources/audio/";
 }

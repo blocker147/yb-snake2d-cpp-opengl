@@ -181,4 +181,14 @@ namespace Snake2d {
 
 		textures[type] = texture;
 	}
+
+	AudioManager::AudioManager() {
+		soundEngine = irrklang::createIrrKlangDevice();
+
+		std::string audioPath = Snake2d::AUDIO_DIR;
+		audios[AudioType::ANY_MENU_BACKGROUND_MUSIC] = audioPath + "breakout.wav";
+	}
+	void AudioManager::play(AudioType type, bool playLooped) {
+		soundEngine->play2D(audios[type].c_str(), playLooped);
+	}
 }
