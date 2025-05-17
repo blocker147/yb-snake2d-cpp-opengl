@@ -148,6 +148,7 @@ namespace Snake2d {
 		loadTexture(TextureType::SNAKE_CORPSE, (texturesPath + "snake-corpse.png").c_str());
 		loadTexture(TextureType::SNAKE_BONE, (texturesPath + "snake-bone.png").c_str());
 		loadTexture(TextureType::APPLE_LINE_SPAWNER, (texturesPath + "apple-line-spawner.png").c_str());
+		loadTexture(TextureType::SNAKE_BONE_DESTROYER, (texturesPath + "snake-bone-destroyer.png").c_str());
 	}
 	void TextureManager::loadTexture(TextureType type, const char* filename, bool flipVertically) {
 		unsigned int texture;

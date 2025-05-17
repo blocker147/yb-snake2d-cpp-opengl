@@ -31,7 +31,8 @@ namespace Snake2d {
 		SNAKE_TAIL,
 		SNAKE_CORPSE,
 		SNAKE_BONE,
-		APPLE_LINE_SPAWNER
+		APPLE_LINE_SPAWNER,
+		SNAKE_BONE_DESTROYER
 	};
 	class TextureManager {
 	private:

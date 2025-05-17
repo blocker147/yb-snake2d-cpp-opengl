@@ -14,7 +14,7 @@
 #include "system_settings.h"
 #include "font_renderer.h"
 
-Snake2d::SystemSettings systemSettings(800, 800);
+Snake2d::SystemSettings systemSettings(1440, 1440);
 Snake2d::GameState gameState;
 const int WORLD_WIDTH = 20, WORLD_HEIGHT = 20;
 
@@ -206,9 +206,9 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 			int index = y * WORLD_WIDTH + x;
 			openglRotations[index] = go->getRotation();
 			switch (go->getType()) {
-				case Snake2d::GameObject::Type::NONE:				openglWorld[index] = 0; break;
-				case Snake2d::GameObject::Type::SNAKE_CORPSE:		openglWorld[index] = 1; break;
-				case Snake2d::GameObject::Type::SNAKE_HEAD:			openglWorld[index] = 2; break;
+				case Snake2d::GameObject::Type::NONE:					openglWorld[index] = 0; break;
+				case Snake2d::GameObject::Type::SNAKE_CORPSE:			openglWorld[index] = 1; break;
+				case Snake2d::GameObject::Type::SNAKE_HEAD:				openglWorld[index] = 2; break;
 				case Snake2d::GameObject::Type::SNAKE_BODY: {
 					Snake2d::SnakeBody* body = dynamic_cast<Snake2d::SnakeBody*>(go);
 					if (body->segment == Snake2d::SnakeBody::Segment::Straight)
@@ -219,10 +219,11 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 						std::cout << "WARNING: unexpected SnakeBody Segment provided: " << body->segment << std::endl;
 					break;
 				}
-				case Snake2d::GameObject::Type::APPLE:				openglWorld[index] = 4;	break;
-				case Snake2d::GameObject::Type::APPLE_LINE_SPAWNER:	openglWorld[index] = 5; break;
-				case Snake2d::GameObject::Type::SNAKE_BONE:			openglWorld[index] = 6; break;
-				case Snake2d::GameObject::Type::SNAKE_TAIL:			openglWorld[index] = 7; break;
+				case Snake2d::GameObject::Type::APPLE:					openglWorld[index] = 4;	break;
+				case Snake2d::GameObject::Type::APPLE_LINE_SPAWNER:		openglWorld[index] = 5; break;
+				case Snake2d::GameObject::Type::SNAKE_BONE:				openglWorld[index] = 6; break;
+				case Snake2d::GameObject::Type::SNAKE_TAIL:				openglWorld[index] = 7; break;
+				case Snake2d::GameObject::Type::SNAKE_BONE_DESTROYER:	openglWorld[index] = 9; break;
 			}
 		}
 
@@ -247,15 +248,18 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 	glBindTexture(GL_TEXTURE_2D, textureManager.getTextureId(Snake2d::TextureType::SNAKE_BONE));
 	glActiveTexture(GL_TEXTURE7);
 	glBindTexture(GL_TEXTURE_2D, textureManager.getTextureId(Snake2d::TextureType::APPLE_LINE_SPAWNER));
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_2D, textureManager.getTextureId(Snake2d::TextureType::SNAKE_BONE_DESTROYER));
 
-	shader->setInt("u_texture_apple",				0);
-	shader->setInt("u_texture_snake_head",			1);
-	shader->setInt("u_texture_snake_body_tail",		2);
-	shader->setInt("u_texture_snake_body_straight", 3);
-	shader->setInt("u_texture_snake_body_rotated",	4);
-	shader->setInt("u_texture_snake_corpse",		5);
-	shader->setInt("u_texture_snake_bone",			6);
-	shader->setInt("u_texture_apple_line_spawner",	7);
+	shader->setInt("u_texture_apple",					0);
+	shader->setInt("u_texture_snake_head",				1);
+	shader->setInt("u_texture_snake_body_tail",			2);
+	shader->setInt("u_texture_snake_body_straight",		3);
+	shader->setInt("u_texture_snake_body_rotated",		4);
+	shader->setInt("u_texture_snake_corpse",			5);
+	shader->setInt("u_texture_snake_bone",				6);
+	shader->setInt("u_texture_apple_line_spawner",		7);
+	shader->setInt("u_texture_snake_bone_destroyer",	8);
 
 	shader->setFloatArray("u_world_size",		WORLD_WIDTH * WORLD_HEIGHT, openglWorld);
 	shader->setFloatArray("u_world_rotations",	WORLD_WIDTH * WORLD_HEIGHT, openglRotations);

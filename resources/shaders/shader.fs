@@ -19,6 +19,7 @@ uniform sampler2D u_texture_snake_body_rotated;
 uniform sampler2D u_texture_snake_corpse;
 uniform sampler2D u_texture_snake_bone;
 uniform sampler2D u_texture_apple_line_spawner;
+uniform sampler2D u_texture_snake_bone_destroyer;
 
 vec2 rotateTexture(int rotation) {
     switch(rotation) {
@@ -99,6 +100,12 @@ void main() {
         // Snake Body Rotated
         case 8: {
             vec4 texColor = texture(u_texture_snake_body_rotated, rotatedTextureCoords);
+            vec4 backgroundColor = vec4(f_color, 1.0);
+            FragColor = mix(backgroundColor, texColor, texColor.a);
+            break;
+        }
+        case 9: {
+            vec4 texColor = texture(u_texture_snake_bone_destroyer, rotatedTextureCoords);
             vec4 backgroundColor = vec4(f_color, 1.0);
             FragColor = mix(backgroundColor, texColor, texColor.a);
             break;

@@ -7,10 +7,14 @@
 #include "game_object.h"
 #include "snake.h"
 #include "corpse.h"
+#include "bone.h"
 #include "user_input.h"
 
 namespace Snake2d {
-	enum WorldConditionType { GENERATE_APPLE_LINE_SPAWNER };
+	enum WorldConditionType {
+		GENERATE_APPLE_LINE_SPAWNER,
+		GENERATE_SNAKE_BONE_DESTROYER
+	};
 	enum WorldConditionOperator { EQUAL };
 	enum WorldConditionChangeOperator { INCREMENT };
 	enum PostWorldConditionAction { RESET };
@@ -18,6 +22,12 @@ namespace Snake2d {
 	* At the moment class used to specify conditions for World behavior.
 	* When condition is met specific GameObject can be generated/spawned in world.
 	* For example: "When '10' apples are eaten - then spawn 'AppleLineSpawner' GameObject in world."
+	* 
+	* Checklist when creating new WorldCondition from new WorldConditionType:
+	* - add new type in WorldConditionType
+	* - add new instance of WorldCondition in gameState.cpp in initialize method
+	* - update gameState.cpp to include logic when WorldUpdateResult is received after world.update()
+	* - update world.afterUpdate() method
 	*/
 	class WorldCondition {
 	private:
@@ -65,12 +75,16 @@ namespace Snake2d {
 		std::vector<std::vector<GameObject*>> field;
 		Snake* snake;
 		Corpse* corpse;
+		Bone* bone;
 
 		// FIXME: move this variable to separate class (e.g GameState, GameConfig)
 		int maxApplesAllowed = 1;
 
 		void initializeField();
 		void initializeSnake();
+		void initializeCorpse();
+		void initializeBone();
+		void initializeApple();
 		void initializeDirection();
 
 		int getIndex(Coordinate coordinate);

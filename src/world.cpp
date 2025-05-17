@@ -4,30 +4,11 @@ namespace Snake2d {
 	World::World(const int height, const int width): height(height), width(width) {
 		initializeField();
 		initializeSnake();
-		generateApple();
+		initializeCorpse();
+		initializeBone();
+		initializeApple();
 		initializeDirection();
-
-		// FIXME: add another way to introduce spawning of fun GameObjects
-		delete field[7][0];
-		field[7][0] = new AppleLineSpawner(getIndex(Coordinate{ 0, 7 }));
-
-		// FIXME: move to separate method
-		corpse = new Corpse();
 	}
-
-	World::~World() {
-		for (int y = 0; y < height; y++)
-			for (int x = 0; x < width; x++) {
-				delete field[y][x];
-				field[y][x] = nullptr;
-			}
-		field.clear();
-		delete snake;
-		snake = nullptr;
-		delete corpse;
-		corpse = nullptr;
-	}
-
 	void World::initializeField() {
 		field.resize(height);
 		for (int y = 0; y < height; y++)
@@ -37,7 +18,6 @@ namespace Snake2d {
 				field[y][x] = new None(getIndex(Coordinate{ x, y }));
 		}
 	}
-
 	void World::initializeSnake() {
 		std::deque<SnakeBody*> snakeBody;
 
@@ -61,15 +41,36 @@ namespace Snake2d {
 
 		this->snake = new Snake(snakeBody);
 	}
-
+	void World::initializeCorpse() {
+		corpse = new Corpse();
+	}
+	void World::initializeBone() {
+		bone = new Bone();
+	}
+	void World::initializeApple() {
+		generateApple();
+	}
 	void World::initializeDirection() {
 		UserInput::updateDirection(UserInput::RIGHT);
+	}
+	World::~World() {
+		for (int y = 0; y < height; y++)
+			for (int x = 0; x < width; x++) {
+				delete field[y][x];
+				field[y][x] = nullptr;
+			}
+		field.clear();
+		delete snake;
+		snake = nullptr;
+		delete corpse;
+		corpse = nullptr;
+		delete bone;
+		bone = nullptr;
 	}
 
 	int World::getIndex(Coordinate coordinate) {
 		return width * (coordinate.y + 1) - width + coordinate.x;
 	}
-
 	World::Coordinate World::getCoordinate(int index) {
 		int x = index % width;
 		int y = index / width;
@@ -94,7 +95,6 @@ namespace Snake2d {
 
 		return Coordinate{ x, y };
 	}
-
 	void World::swapDirectionIfHeadCollidesWithNeck(Coordinate snakeNeck, Coordinate nextSnakeHead) {
 		if (snakeNeck.x == nextSnakeHead.x && snakeNeck.y == nextSnakeHead.y)
 			switch (UserInput::direction)
@@ -106,7 +106,6 @@ namespace Snake2d {
 			}
 	}
 	
-	// FIXME: add another way to introduce randomness for interesting GameObject spawn
 	void World::generateApple() {
 		// FIXME: bad solution, better to create separate class that holds every Apple (same as Snake class)
 		int count = 0;
@@ -331,7 +330,6 @@ namespace Snake2d {
 		if (count != 1)
 			std::cout << count << " - 'SNAKE_HEAD' detected but ONLY ONE is expected!\n";
 	}
-
 	void World::assertOnlyOneTail() {
 		int count = 0;
 		for (int y = 0; y < height; y++)
@@ -341,7 +339,6 @@ namespace Snake2d {
 		if (count != 1)
 			std::cout << count << " - 'SNAKE_TAIL' detected but ONLY ONE is expected!\n";
 	}
-
 	void World::assertSnake() {
 		std::vector<GameObject*> worldSnakeBody;
 		for (int y = 0; y < height; y++)
@@ -367,7 +364,6 @@ namespace Snake2d {
 				std::cout << "Missmatch found between Snake and World body parts at Snake index[" << body[i]->index << "]\n";
 		}
 	}
-
 	void World::assertZeroApples() {
 		int count = 0;
 		for (int y = 0; y < height; y++)
@@ -377,7 +373,6 @@ namespace Snake2d {
 		if (count != 0)
 			std::cout << count + " - 'APPLE' detected but ZERO is expected!\n";
 	}
-
 	void World::assertOneApple() {
 		int count = 0;
 		for (int y = 0; y < height; y++)
@@ -387,7 +382,6 @@ namespace Snake2d {
 		if (count != 1)
 			std::cout << count << " - 'APPLE' detected but ONLY ONE is expected\n!";
 	}
-
 	void World::assertPointers() {
 		std::vector<GameObject*> worldSnake;
 		std::vector<GameObject*> worldCorpse;
@@ -448,6 +442,11 @@ namespace Snake2d {
 			case Snake2d::GameObject::APPLE_LINE_SPAWNER: {
 				delete field[coordinate.y][coordinate.x];
 				field[coordinate.y][coordinate.x] = new AppleLineSpawner(index);
+				break;
+			}
+			case Snake2d::GameObject::SNAKE_BONE_DESTROYER: {
+				delete field[coordinate.y][coordinate.x];
+				field[coordinate.y][coordinate.x] = new SnakeBoneDestroyer(index);
 				break;
 			}
 			default: {
@@ -588,6 +587,10 @@ namespace Snake2d {
 			break;
 		}
 		case GameObject::Type::SNAKE_BONE: {
+			std::vector<int> bonesToRemove;
+			bonesToRemove.push_back(go->index);
+			bone->remove(bonesToRemove);
+
 			// ADD NEW HEAD (instead of old none)
 			delete field[nextSnakeHead.y][nextSnakeHead.x];
 			field[nextSnakeHead.y][nextSnakeHead.x] = newSnakeHead;
@@ -685,6 +688,45 @@ namespace Snake2d {
 			generateApple();
 			break;
 		}
+		case GameObject::Type::SNAKE_BONE_DESTROYER: {
+			for (SnakeBone* bone : bone->getBones()) {
+				int index = bone->index;
+				Coordinate snakeBoneCoordinate = getCoordinate(index);
+				delete field[snakeBoneCoordinate.y][snakeBoneCoordinate.x];
+				None* none = new None(index);
+				field[snakeBoneCoordinate.y][snakeBoneCoordinate.x] = none;
+			}
+			bone->clear();
+
+			// ADD NEW HEAD (instead of old none)
+			delete field[nextSnakeHead.y][nextSnakeHead.x];
+			field[nextSnakeHead.y][nextSnakeHead.x] = newSnakeHead;
+			// ADD NEW NECK (instead of old head)
+			delete field[headCoordinate.y][headCoordinate.x];
+			field[headCoordinate.y][headCoordinate.x] = newSnakeNeck;
+
+			// REPLACEMENT OF OLD TAIL WITH 
+			SnakeTail* tail = snake->getTail();
+			int tailIndex = tail->index;
+			Coordinate tailCoordinate = getCoordinate(tailIndex);
+			None* newNone = new None(tailIndex);
+			// ADD NEW NONE (instead of old tail)
+			delete field[tailCoordinate.y][tailCoordinate.x];
+			field[tailCoordinate.y][tailCoordinate.x] = newNone;
+
+			// REPLACEMENT OF OLD BODY WITH TAIL
+			SnakeBody* bodyBeforeTail = snake->getBodyBeforeTail();
+			int bodyBeforeTailIndex = bodyBeforeTail->index;
+			SnakeTail* newTail = new SnakeTail(bodyBeforeTailIndex, GameObject::Rotation::DEGREES_0);
+			Coordinate bodyBeforeTailCoords = getCoordinate(bodyBeforeTailIndex);
+			// ADD NEW TAIL (instead of old body)
+			delete field[bodyBeforeTailCoords.y][bodyBeforeTailCoords.x];
+			field[bodyBeforeTailCoords.y][bodyBeforeTailCoords.x] = newTail;
+
+			snake->move(newTail, newSnakeNeck, newSnakeHead);
+			// FIXME: added because sometimes there are no apples
+			break;
+		}
 		default: {
 			// ADD NEW HEAD (instead of old none)
 			delete field[nextSnakeHead.y][nextSnakeHead.x];
@@ -728,6 +770,7 @@ namespace Snake2d {
 			delete field[coordinate.y][coordinate.x];
 			SnakeBone* sb = new SnakeBone(index);
 			field[coordinate.y][coordinate.x] = sb;
+			bone->add(sb);
 		}
 
 		setSnakeRotation();
@@ -740,7 +783,6 @@ namespace Snake2d {
 
 		return worldUpdateResult;
 	}
-
 	void World::afterUpdate(std::vector<WorldCondition*> postConditions) {
 		std::vector<WorldCondition*> metConditions;
 		for (WorldCondition* condition : postConditions)
@@ -751,6 +793,10 @@ namespace Snake2d {
 			switch (condition->getType()) {
 				case WorldConditionType::GENERATE_APPLE_LINE_SPAWNER: {
 					generate(GameObject::Type::APPLE_LINE_SPAWNER);
+					break;
+				}
+				case WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER: {
+					generate(GameObject::Type::SNAKE_BONE_DESTROYER);
 					break;
 				}
 				default: {

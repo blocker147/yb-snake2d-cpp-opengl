@@ -12,17 +12,22 @@ namespace Snake2d {
 		score = 0;
 		life = 3;
 
-		int delayBetweenUpdatesMs = 120;
+		int delayBetweenUpdatesMs = 100;
 		int WORLD_HEIGHT = 20, WORLD_WIDTH = 20;
 
 		worldTimer = new RepeatingTimer(0, 0, []() {}, delayBetweenUpdatesMs);
 		world = new World(WORLD_HEIGHT, WORLD_WIDTH);
 
-		// Once 10 apples are eaten World should generate AppleLineSpawner & reset condition back to 0
+		// Once 7 Apple's are eaten World should generate AppleLineSpawner & reset condition back to 0
 		WorldCondition* whenToGenerateAppleLineSpawnerCondition = new WorldCondition(
-			10, WorldConditionType::GENERATE_APPLE_LINE_SPAWNER
+			7, WorldConditionType::GENERATE_APPLE_LINE_SPAWNER
+		);
+		// Once 10 SnakeCorpse's are eaten World should generate SnakeBoneDestroyer & reset condition back to 0
+		WorldCondition* whenToGenerateSnakeBoneDestroyer = new WorldCondition(
+			10, WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER
 		);
 		postWorldConditions[WorldConditionType::GENERATE_APPLE_LINE_SPAWNER] = whenToGenerateAppleLineSpawnerCondition;
+		postWorldConditions[WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER] = whenToGenerateSnakeBoneDestroyer;
 
 		isInitialized = true;
 	}
@@ -57,6 +62,11 @@ namespace Snake2d {
 			// Increment value by '1' when apple is eaten
 			if (worldUpdateResult.collisionWith == GameObject::Type::APPLE) {
 				postWorldConditions[WorldConditionType::GENERATE_APPLE_LINE_SPAWNER]->changeCurrentValue(
+					WorldConditionChangeOperator::INCREMENT, 1
+				);
+			}
+			else if (worldUpdateResult.collisionWith == GameObject::Type::SNAKE_CORPSE) {
+				postWorldConditions[WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER]->changeCurrentValue(
 					WorldConditionChangeOperator::INCREMENT, 1
 				);
 			}
