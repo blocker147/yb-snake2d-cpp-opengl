@@ -23,6 +23,9 @@ namespace Snake2d {
 		World* world;
 		int score;
 		int life;
+
+		// Holds unique game conditions that are used during game
+		std::map<WorldConditionType, WorldCondition*> postWorldConditions;
 	public:
 		GameState();
 

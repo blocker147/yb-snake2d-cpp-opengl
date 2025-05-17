@@ -107,7 +107,6 @@ namespace Snake2d {
 	}
 	
 	// FIXME: add another way to introduce randomness for interesting GameObject spawn
-	bool spawnAppleOrLine = true;
 	void World::generateApple() {
 		// FIXME: bad solution, better to create separate class that holds every Apple (same as Snake class)
 		int count = 0;
@@ -136,17 +135,13 @@ namespace Snake2d {
 		Coordinate coordinate = getCoordinate(index);
 		delete field[coordinate.y][coordinate.x];
 		// FIXME: add better way of spawning fun GameObjects
-		if (spawnAppleOrLine)
-			field[coordinate.y][coordinate.x] = new Apple(index);
-		else
-			field[coordinate.y][coordinate.x] = new AppleLineSpawner(index);
+		field[coordinate.y][coordinate.x] = new Apple(index);
 
 		std::deque<SnakeBody*> body = snake->getBody();
 		for (int i = 0; i < body.size(); i++)
 			if (body[i]->index == field[coordinate.y][coordinate.x]->index)
 				std::cout << "Apple spawned at Snake body position\n";
 		// FIXME: add better way of spawning fun GameObjects
-		spawnAppleOrLine = !spawnAppleOrLine;
 	}
 
 	void World::setSnakeRotation() {
@@ -433,10 +428,39 @@ namespace Snake2d {
 		}
 	}
 
+	void World::generate(GameObject::Type goType) {
+		std::vector<int> noneIndexes;
+		for (int y = 0; y < height; y++)
+			for (int x = 0; x < width; x++) {
+				GameObject* go = field[y][x];
+				if (go->getType() == GameObject::Type::NONE)
+					noneIndexes.push_back(go->index);
+			}
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dist(0, noneIndexes.size() - 1);
+		int randomIndex = dist(gen);
+		int index = noneIndexes[randomIndex];
+
+		Coordinate coordinate = getCoordinate(index);
+		switch (goType) {
+			case Snake2d::GameObject::APPLE_LINE_SPAWNER: {
+				delete field[coordinate.y][coordinate.x];
+				field[coordinate.y][coordinate.x] = new AppleLineSpawner(index);
+				break;
+			}
+			default: {
+				std::cout << "WARNING::Unexpected GameObject generation - " << goType << std::endl;
+				break;
+			}
+		}
+	}
+
 	// BUG with direction (Fixed but signature not updated).
 	// Wrong direction memory argument is used in method and nested methods.
-	World::WorldUpdateInfo World::update(UserInput::Direction direction, uint64_t now) {
-		WorldUpdateInfo worldUpdateInfo;
+	World::WorldUpdateResult World::update(UserInput::Direction direction, uint64_t now) {
+		WorldUpdateResult worldUpdateResult;
 
 		// Calculate next head position depending on direction
 		SnakeHead* head = snake->getHead();
@@ -458,6 +482,9 @@ namespace Snake2d {
 		SnakeBody* newSnakeNeck = new SnakeBody(headIndex, GameObject::Rotation::DEGREES_0);
 
 		GameObject* go = field[nextSnakeHead.y][nextSnakeHead.x];
+
+		worldUpdateResult.collisionWith = go->getType();
+		worldUpdateResult.collisionAt = getCoordinate(go->index);
 		switch (go->getType())
 		{
 		case GameObject::Type::APPLE: {
@@ -479,7 +506,7 @@ namespace Snake2d {
 			// FIXME: do something with assertions
 			//assertOneApple();
 
-			worldUpdateInfo.scoreDelta += 3;
+			worldUpdateResult.scoreDelta += 3;
 			break;
 		}
 		case GameObject::Type::SNAKE_TAIL:
@@ -557,7 +584,7 @@ namespace Snake2d {
 
 			snake->move(newTail, newSnakeNeck, newSnakeHead);
 
-			worldUpdateInfo.scoreDelta++;
+			worldUpdateResult.scoreDelta++;
 			break;
 		}
 		case GameObject::Type::SNAKE_BONE: {
@@ -588,7 +615,7 @@ namespace Snake2d {
 
 			snake->move(newTail, newSnakeNeck, newSnakeHead);
 
-			worldUpdateInfo.lifeDelta--;
+			worldUpdateResult.lifeDelta--;
 			break;
 		}
 		case GameObject::Type::APPLE_LINE_SPAWNER: {
@@ -711,6 +738,28 @@ namespace Snake2d {
 		assertOnlyOneTail();
 		assertSnake();
 
-		return worldUpdateInfo;
+		return worldUpdateResult;
+	}
+
+	void World::afterUpdate(std::vector<WorldCondition*> postConditions) {
+		std::vector<WorldCondition*> metConditions;
+		for (WorldCondition* condition : postConditions)
+			if (condition->isMet())
+				metConditions.push_back(condition);
+
+		for (WorldCondition* condition : metConditions)
+			switch (condition->getType()) {
+				case WorldConditionType::GENERATE_APPLE_LINE_SPAWNER: {
+					generate(GameObject::Type::APPLE_LINE_SPAWNER);
+					break;
+				}
+				default: {
+					std::cout << "INFO::This type of WorldConditionType not handled yet - " << condition->getType() << std::endl;
+					break;
+				}
+			}
+
+		for (WorldCondition* condition : metConditions)
+			condition->afterMet();
 	}
 }

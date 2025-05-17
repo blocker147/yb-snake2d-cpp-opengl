@@ -12,11 +12,17 @@ namespace Snake2d {
 		score = 0;
 		life = 3;
 
-		int delayBetweenUpdatesMs = 100;
+		int delayBetweenUpdatesMs = 120;
 		int WORLD_HEIGHT = 20, WORLD_WIDTH = 20;
 
 		worldTimer = new RepeatingTimer(0, 0, []() {}, delayBetweenUpdatesMs);
 		world = new World(WORLD_HEIGHT, WORLD_WIDTH);
+
+		// Once 10 apples are eaten World should generate AppleLineSpawner & reset condition back to 0
+		WorldCondition* whenToGenerateAppleLineSpawnerCondition = new WorldCondition(
+			10, WorldConditionType::GENERATE_APPLE_LINE_SPAWNER
+		);
+		postWorldConditions[WorldConditionType::GENERATE_APPLE_LINE_SPAWNER] = whenToGenerateAppleLineSpawnerCondition;
 
 		isInitialized = true;
 	}
@@ -28,6 +34,12 @@ namespace Snake2d {
 		worldTimer = nullptr;
 		delete world;
 		world = nullptr;
+		
+		for (auto& [_, worldCondition] : postWorldConditions) {
+			delete worldCondition;
+			worldCondition = nullptr;
+		}
+		postWorldConditions.clear();
 
 		isInitialized = false;
 	}
@@ -35,12 +47,24 @@ namespace Snake2d {
 		uint64_t now = Clock::whatTimeIsIt();
 
 		if (worldTimer->shouldUpdate(now)) {
-			World::WorldUpdateInfo worldUpdateInfo;
-			worldUpdateInfo = world->update(direction, now);
+			World::WorldUpdateResult worldUpdateResult;
+			worldUpdateResult = world->update(direction, now);
 
-			this->life += worldUpdateInfo.lifeDelta;
-			this->score += worldUpdateInfo.scoreDelta;
+			this->life += worldUpdateResult.lifeDelta;
+			this->score += worldUpdateResult.scoreDelta;
 			this->isGameOver = this->life <= 0;
+
+			// Increment value by '1' when apple is eaten
+			if (worldUpdateResult.collisionWith == GameObject::Type::APPLE) {
+				postWorldConditions[WorldConditionType::GENERATE_APPLE_LINE_SPAWNER]->changeCurrentValue(
+					WorldConditionChangeOperator::INCREMENT, 1
+				);
+			}
+
+			std::vector<WorldCondition*> postWorldConditionsValues;
+			for (auto& [_, worldCondition] : postWorldConditions)
+				postWorldConditionsValues.push_back(worldCondition);
+			world->afterUpdate(postWorldConditionsValues);
 		}
 
 		if (isGameOver)
