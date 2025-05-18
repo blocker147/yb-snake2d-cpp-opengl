@@ -9,6 +9,7 @@ namespace Snake2d {
 	extern const std::string SHADER_DIR;
 	extern const std::string TEXTURE_DIR;
 	extern const std::string AUDIO_DIR;
+	extern const std::string SETTINGS_DIR;
 }
 
 #endif

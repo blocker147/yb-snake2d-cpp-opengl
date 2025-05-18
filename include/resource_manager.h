@@ -4,6 +4,7 @@
 #include <stb_image.h>
 
 #include <map>
+#include <iostream>
 
 #include "shader.h"
 #include "file_utils.h"
@@ -57,6 +58,18 @@ namespace Snake2d {
 		}
 
 		void play(AudioType type, bool playLooped = false);
+	};
+
+	class SettingsManager {
+	private:
+		int screenWidth, screenHeight;
+
+		void readFromFile();
+	public:
+		SettingsManager() { readFromFile(); }
+
+		int getScreenWidth() const { return screenWidth; }
+		int getScreenHeight() const { return screenHeight; }
 	};
 }
 

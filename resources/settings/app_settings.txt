@@ -1,0 +1,2 @@
+screen_width=1440
+screen_height=1440

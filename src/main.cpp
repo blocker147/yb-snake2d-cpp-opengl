@@ -11,37 +11,38 @@
 #include "world.h"
 #include "resource_manager.h"
 #include "game_state.h"
-#include "system_settings.h"
 #include "font_renderer.h"
 
-Snake2d::SystemSettings systemSettings(1440, 1440);
 Snake2d::GameState gameState;
 const int WORLD_WIDTH = 20, WORLD_HEIGHT = 20;
 
-GLFWwindow* createWindow();
+GLFWwindow* createWindow(Snake2d::SettingsManager&);
 void framebufferSizeCallback(GLFWwindow*, int, int);
 void cursorPosCallback(GLFWwindow*, double, double);
 void mouseButtonCallback(GLFWwindow*, int, int, int);
 void keyCallback(GLFWwindow*, int, int, int, int);
 bool mouseOnRectangle = false;
 
-void handleMainMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::ShaderManager*);
-void handlePlayingGameMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::ShaderManager*, Snake2d::TextureManager&);
-void handleGameOverMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::ShaderManager*);
+void handleMainMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::SettingsManager&, Snake2d::ShaderManager*);
+void handlePlayingGameMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::SettingsManager&, Snake2d::ShaderManager*, Snake2d::TextureManager&);
+void handleGameOverMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::SettingsManager&, Snake2d::ShaderManager*);
 
 int main()
 {
 	std::cout << std::filesystem::current_path() << std::endl;
+	Snake2d::SettingsManager settingsManager;
 
-	GLFWwindow* window = createWindow();
+	GLFWwindow* window = createWindow(settingsManager);
 	if (window == NULL) return -1;
 
 	// UI_INITIALIZATION
-	Snake2d::FontRenderer fontRenderer(systemSettings);
+	// TODO: Move FontRenderer to resource_manager.h and rename it to FontManager
+	Snake2d::FontRenderer fontRenderer(settingsManager);
 	fontRenderer.loadFont(Snake2d::FontType::ANTONIO_BOLD, "Antonio-Bold.ttf");
 	Snake2d::ShaderManager* shaderManager = new Snake2d::ShaderManager(WORLD_WIDTH, WORLD_HEIGHT);
 	Snake2d::TextureManager textureManager;
 	Snake2d::AudioManager audioManager;
+
 	audioManager.play(Snake2d::AudioType::ANY_MENU_BACKGROUND_MUSIC, true);
 	
 	while (!glfwWindowShouldClose(window)) {
@@ -50,11 +51,11 @@ int main()
 
 		switch (gameState.getView()) {
 			case Snake2d::GameView::MAIN_MENU:
-				handleMainMenu(gameState, fontRenderer, shaderManager); break;
+				handleMainMenu(gameState, fontRenderer, settingsManager, shaderManager); break;
 			case Snake2d::GameView::PLAYING_GAME_MENU:
-				handlePlayingGameMenu(gameState, fontRenderer, shaderManager, textureManager); break;
+				handlePlayingGameMenu(gameState, fontRenderer, settingsManager, shaderManager, textureManager); break;
 			case Snake2d::GameView::GAME_OVER_MENU:
-				handleGameOverMenu(gameState, fontRenderer, shaderManager); break;
+				handleGameOverMenu(gameState, fontRenderer, settingsManager, shaderManager); break;
 		}
 		
 		glfwSwapBuffers(window);
@@ -70,7 +71,7 @@ int main()
 	return 0;
 }
 
-GLFWwindow* createWindow()
+GLFWwindow* createWindow(Snake2d::SettingsManager& settingsManager)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -81,7 +82,7 @@ GLFWwindow* createWindow()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-	GLFWwindow* window = glfwCreateWindow(systemSettings.screenWidth, systemSettings.screenHeight, "Snake2d", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(settingsManager.getScreenWidth(), settingsManager.getScreenHeight(), "Snake2d", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << '\n';
@@ -93,7 +94,7 @@ GLFWwindow* createWindow()
 	{
 		std::cout << "Failed to load GLAD" << '\n';
 	}
-	glViewport(0, 0, systemSettings.screenWidth, systemSettings.screenHeight);
+	glViewport(0, 0, settingsManager.getScreenWidth(), settingsManager.getScreenHeight());
 
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 	glfwSetCursorPosCallback(window, cursorPosCallback);
@@ -156,7 +157,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	}
 }
 
-void handleMainMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRenderer, Snake2d::ShaderManager* shaderManager)
+void handleMainMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRenderer, Snake2d::SettingsManager& settingsManager, Snake2d::ShaderManager* shaderManager)
 {
 	// GAME_LOGIC_SETUP
 	gameState.initialize();
@@ -174,8 +175,8 @@ void handleMainMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRe
 	fontRenderer.renderText(
 		Snake2d::FontType::ANTONIO_BOLD,
 		"Play",
-		systemSettings.screenWidth / 2 - 30,
-		systemSettings.screenHeight / 2,
+		settingsManager.getScreenWidth() / 2 - 30,
+		settingsManager.getScreenHeight() / 2,
 		1.0f,
 		glm::vec3(0.0f, 0.0f, 0.0f)
 	);
@@ -184,12 +185,12 @@ void handleMainMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRe
 		Snake2d::FontType::ANTONIO_BOLD,
 		"Control: WSAD or Arrows. Escape exits from PlayingGameMenu or from GameOverMenu",
 		0.0f,
-		systemSettings.screenHeight - 50.0f,
+		settingsManager.getScreenHeight() - 50.0f,
 		0.5f,
 		glm::vec3(0.0f, 0.0f, 0.0f)
 	);
 }
-void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRenderer, Snake2d::ShaderManager* shaderManager, Snake2d::TextureManager& textureManager)
+void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRenderer, Snake2d::SettingsManager& settingsManager, Snake2d::ShaderManager* shaderManager, Snake2d::TextureManager& textureManager)
 {
 	mouseOnRectangle = false;
 
@@ -276,12 +277,12 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 		Snake2d::FontType::ANTONIO_BOLD,
 		"Score: " + std::to_string(gameState.getScore()) + " Life: " + std::to_string(gameState.getLife()),
 		0.0f,
-		systemSettings.screenHeight - 50.0f,
+		settingsManager.getScreenHeight() - 50.0f,
 		0.5f,
 		glm::vec3(0.0f, 0.0f, 0.0f)
 	);
 }
-void handleGameOverMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRenderer, Snake2d::ShaderManager* shaderManager)
+void handleGameOverMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRenderer, Snake2d::SettingsManager& settingsManager, Snake2d::ShaderManager* shaderManager)
 {
 	// GAME_LOGIC_CLEANUP
 	gameState.cleanUp();
@@ -300,15 +301,15 @@ void handleGameOverMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fo
 		Snake2d::FontType::ANTONIO_BOLD,
 		"Score: " + std::to_string(gameState.getScore()) + " Life: " + std::to_string(gameState.getLife()),
 		0.0f,
-		systemSettings.screenHeight - 50.0f,
+		settingsManager.getScreenHeight() - 50.0f,
 		0.5f,
 		glm::vec3(0.0f, 0.0f, 0.0f)
 	);
 	fontRenderer.renderText(
 		Snake2d::FontType::ANTONIO_BOLD,
 		"Exit",
-		systemSettings.screenWidth / 2 - 30,
-		systemSettings.screenHeight / 2,
+		settingsManager.getScreenWidth() / 2 - 30,
+		settingsManager.getScreenHeight() / 2,
 		1.0f,
 		glm::vec3(0.0f, 0.0f, 0.0f)
 	);

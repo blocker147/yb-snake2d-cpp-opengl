@@ -45,7 +45,7 @@ namespace Snake2d {
 					{ left_x,  top_y,    0.0f },
 					{ left_x,  bottom_y, 0.0f },
 					{ right_x, bottom_y, 0.0f },
-					
+
 					{ right_x, bottom_y, 0.0f },
 					{ right_x, top_y,    0.0f },
 					{ left_x,  top_y,    0.0f }
@@ -191,5 +191,38 @@ namespace Snake2d {
 	}
 	void AudioManager::play(AudioType type, bool playLooped) {
 		soundEngine->play2D(audios[type].c_str(), playLooped);
+	}
+
+	void SettingsManager::readFromFile() {
+		std::string settingsPath = Snake2d::SETTINGS_DIR;
+
+		std::ifstream inf{ (settingsPath + "app_settings.txt").c_str() };
+
+		if (!inf) {
+			std::cout << "WARNING::app_settings.txt file not found at: " << settingsPath + "app_settings.txt" << std::endl;
+			std::cout << "INFO::Setting default values for screen height & width" << std::endl;
+			screenWidth = 800;
+			screenHeight = 800;
+			return;
+		}
+
+		std::string line{};
+		while (std::getline(inf, line)) {
+
+			std::size_t equalAt = line.find("=");
+			if (equalAt != std::string::npos) {
+				std::string key = line.substr(0, equalAt);
+				std::string value = line.substr(equalAt + 1);
+
+				if (key == "screen_width") {
+					screenWidth = std::stoi(value);
+					std::cout << "INFO::Setting screen_width to: " << screenWidth << std::endl;
+				}
+				else if (key == "screen_height") {
+					screenHeight = std::stoi(value);
+					std::cout << "INFO::Setting screen_height to: " << screenHeight << std::endl;
+				}
+			}
+		}
 	}
 }

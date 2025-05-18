@@ -15,8 +15,6 @@
 #include "shader.h"
 #include "file_utils.h"
 
-#include "system_settings.h"
-
 namespace Snake2d {
 	enum FontType { ANTONIO_BOLD };
 
@@ -47,9 +45,9 @@ namespace Snake2d {
 			glBindVertexArray(0);
 		}
 	public:
-		FontRenderer(SystemSettings& systemSettings) {
-			float screenWidth = systemSettings.screenWidth;
-			float screenHeight = systemSettings.screenHeight;
+		FontRenderer(SettingsManager& settingsManager) {
+			float screenWidth = settingsManager.getScreenWidth();
+			float screenHeight = settingsManager.getScreenHeight();
 
 			std::string vertexShader = Snake2d::SHADER_DIR + "shader_text.vs";
 			std::string fragmentShader = Snake2d::SHADER_DIR + "shader_text.fs";

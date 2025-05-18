@@ -13,4 +13,5 @@ namespace Snake2d {
 	const std::string SHADER_DIR = prefix + "resources/shaders/";
 	const std::string TEXTURE_DIR = prefix + "resources/textures/";
 	const std::string AUDIO_DIR = prefix + "resources/audio/";
+	const std::string SETTINGS_DIR = prefix + "resources/settings/";
 }
