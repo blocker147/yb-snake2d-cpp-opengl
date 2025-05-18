@@ -12,11 +12,19 @@
 
 namespace Snake2d {
 	enum WorldConditionType {
+		GENERATE_APPLE,
 		GENERATE_APPLE_LINE_SPAWNER,
 		GENERATE_SNAKE_BONE_DESTROYER
 	};
-	enum WorldConditionOperator { EQUAL };
-	enum WorldConditionChangeOperator { INCREMENT };
+	enum WorldConditionOperator {
+		EQUAL,
+		// LT = Less Than
+		LT
+	};
+	enum WorldConditionChangeOperator {
+		SET,
+		INCREMENT
+	};
 	enum PostWorldConditionAction { RESET };
 	/*
 	* At the moment class used to specify conditions for World behavior.
@@ -47,16 +55,15 @@ namespace Snake2d {
 		bool isMet() const {
 			bool isConditionMet = false;
 			switch (conditionOperator) {
-				case WorldConditionOperator::EQUAL: isConditionMet = currentValue == expectedValue; break;
+				case WorldConditionOperator::EQUAL: isConditionMet = currentValue == expectedValue;		break;
+				case WorldConditionOperator::LT:	isConditionMet = currentValue < expectedValue;		break;
 			}
 			return isConditionMet;
 		}
-		void changeCurrentValue(WorldConditionChangeOperator changeOperator, int byValue) {
+		void changeCurrentValue(WorldConditionChangeOperator changeOperator, int value) {
 			switch (changeOperator) {
-				case Snake2d::INCREMENT: {
-					currentValue += byValue;
-					break;
-				}
+				case WorldConditionChangeOperator::SET:			currentValue = value;	break;
+				case WorldConditionChangeOperator::INCREMENT:	currentValue += value;	break;
 			}
 		}
 		void afterMet() {
@@ -77,14 +84,10 @@ namespace Snake2d {
 		Corpse* corpse;
 		Bone* bone;
 
-		// FIXME: move this variable to separate class (e.g GameState, GameConfig)
-		int maxApplesAllowed = 1;
-
 		void initializeField();
 		void initializeSnake();
 		void initializeCorpse();
 		void initializeBone();
-		void initializeApple();
 		void initializeDirection();
 
 		int getIndex(Coordinate coordinate);
@@ -93,9 +96,12 @@ namespace Snake2d {
 		Coordinate getNextSnakeHead(UserInput::Direction direction, Coordinate coordinate);
 		void swapDirectionIfHeadCollidesWithNeck(Coordinate snakeNeck, Coordinate nextSnakeHead);
 
-		void generateApple();
-
 		void setSnakeRotation();
+
+		/* Generates GameObject by type at random world index that is empty(None) */
+		void generate(GameObject::Type type);
+		/* Counts all objects of specified type in world*/
+		int count(GameObject::Type type);
 
 		void assertOnlyOneHead();
 		void assertOnlyOneTail();
@@ -110,23 +116,21 @@ namespace Snake2d {
 		struct WorldUpdateResult {
 			GameObject::Type collisionWith;
 			Coordinate collisionAt;
+
 			int lifeDelta = 0;
 			int scoreDelta = 0;
+
+			int applesInWorld = 0;
 		};
 
 		World(const int height, const int width);
 		~World();
 
-		// Generates GameObject by type at random world index that is empty (None)
-		void generate(GameObject::Type type);
-
 		WorldUpdateResult update(UserInput::Direction direction, uint64_t now);
 		
 		void afterUpdate(std::vector<WorldCondition*> postConditions);
 
-		std::vector<std::vector<GameObject*>> getField() {
-			return field;
-		}
+		std::vector<std::vector<GameObject*>> getField() { return field; }
 	};
 }
 

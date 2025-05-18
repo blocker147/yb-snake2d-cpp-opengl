@@ -18,6 +18,15 @@ namespace Snake2d {
 		worldTimer = new RepeatingTimer(0, 0, []() {}, delayBetweenUpdatesMs);
 		world = new World(WORLD_HEIGHT, WORLD_WIDTH);
 
+		initializePostWorldConditions();
+
+		isInitialized = true;
+	}
+	void GameState::initializePostWorldConditions() {
+		// While World contains less than '2' Apple's spawn Apple
+		WorldCondition* whenToGenerateApple = new WorldCondition(
+			2, WorldConditionType::GENERATE_APPLE, 0, WorldConditionOperator::LT
+		);
 		// Once 7 Apple's are eaten World should generate AppleLineSpawner & reset condition back to 0
 		WorldCondition* whenToGenerateAppleLineSpawnerCondition = new WorldCondition(
 			7, WorldConditionType::GENERATE_APPLE_LINE_SPAWNER
@@ -26,10 +35,10 @@ namespace Snake2d {
 		WorldCondition* whenToGenerateSnakeBoneDestroyer = new WorldCondition(
 			10, WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER
 		);
+		postWorldConditions[WorldConditionType::GENERATE_APPLE] = whenToGenerateApple;
 		postWorldConditions[WorldConditionType::GENERATE_APPLE_LINE_SPAWNER] = whenToGenerateAppleLineSpawnerCondition;
 		postWorldConditions[WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER] = whenToGenerateSnakeBoneDestroyer;
 
-		isInitialized = true;
 	}
 	void GameState::cleanUp() {
 		if (!isInitialized)
@@ -59,13 +68,18 @@ namespace Snake2d {
 			this->score += worldUpdateResult.scoreDelta;
 			this->isGameOver = this->life <= 0;
 
-			// Increment value by '1' when apple is eaten
+			// Set value to desired when Apple is eaten
+			postWorldConditions[WorldConditionType::GENERATE_APPLE]->changeCurrentValue(
+				WorldConditionChangeOperator::SET, worldUpdateResult.applesInWorld
+			);
 			if (worldUpdateResult.collisionWith == GameObject::Type::APPLE) {
+				// Increment value by '1' when Apple is eaten
 				postWorldConditions[WorldConditionType::GENERATE_APPLE_LINE_SPAWNER]->changeCurrentValue(
 					WorldConditionChangeOperator::INCREMENT, 1
 				);
 			}
 			else if (worldUpdateResult.collisionWith == GameObject::Type::SNAKE_CORPSE) {
+				// Increment value by '1' when SnakeCorpse is eaten
 				postWorldConditions[WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER]->changeCurrentValue(
 					WorldConditionChangeOperator::INCREMENT, 1
 				);

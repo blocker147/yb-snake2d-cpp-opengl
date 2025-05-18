@@ -6,7 +6,6 @@ namespace Snake2d {
 		initializeSnake();
 		initializeCorpse();
 		initializeBone();
-		initializeApple();
 		initializeDirection();
 	}
 	void World::initializeField() {
@@ -46,9 +45,6 @@ namespace Snake2d {
 	}
 	void World::initializeBone() {
 		bone = new Bone();
-	}
-	void World::initializeApple() {
-		generateApple();
 	}
 	void World::initializeDirection() {
 		UserInput::updateDirection(UserInput::RIGHT);
@@ -106,43 +102,6 @@ namespace Snake2d {
 			}
 	}
 	
-	void World::generateApple() {
-		// FIXME: bad solution, better to create separate class that holds every Apple (same as Snake class)
-		int count = 0;
-		for (int y = 0; y < height; y++)
-			for (int x = 0; x < width; x++)
-				if (field[y][x]->getType() == GameObject::Type::APPLE)
-					count++;
-		if (count >= maxApplesAllowed)
-			return;
-
-		std::vector<int> noneIndexes;
-		for (int y = 0; y < height; y++)
-			for (int x = 0; x < width; x++)
-			{
-				GameObject* go = field[y][x];
-				if (go->getType() == GameObject::Type::NONE)
-					noneIndexes.push_back(go->index);
-			}
-
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<> dist(0, noneIndexes.size() - 1);
-		int randomIndex = dist(gen);
-		int index = noneIndexes[randomIndex];
-
-		Coordinate coordinate = getCoordinate(index);
-		delete field[coordinate.y][coordinate.x];
-		// FIXME: add better way of spawning fun GameObjects
-		field[coordinate.y][coordinate.x] = new Apple(index);
-
-		std::deque<SnakeBody*> body = snake->getBody();
-		for (int i = 0; i < body.size(); i++)
-			if (body[i]->index == field[coordinate.y][coordinate.x]->index)
-				std::cout << "Apple spawned at Snake body position\n";
-		// FIXME: add better way of spawning fun GameObjects
-	}
-
 	void World::setSnakeRotation() {
 		// Set Snake Head Rotation
 		SnakeHead* head = snake->getHead();
@@ -439,6 +398,11 @@ namespace Snake2d {
 
 		Coordinate coordinate = getCoordinate(index);
 		switch (goType) {
+			case Snake2d::GameObject::APPLE: {
+				delete field[coordinate.y][coordinate.x];
+				field[coordinate.y][coordinate.x] = new Apple(index);
+				break;
+			}
 			case Snake2d::GameObject::APPLE_LINE_SPAWNER: {
 				delete field[coordinate.y][coordinate.x];
 				field[coordinate.y][coordinate.x] = new AppleLineSpawner(index);
@@ -454,6 +418,14 @@ namespace Snake2d {
 				break;
 			}
 		}
+	}
+	int World::count(GameObject::Type type) {
+		int count = 0;
+		for (int y = 0; y < height; y++)
+			for (int x = 0; x < width; x++)
+				if (field[y][x]->getType() == type)
+					count++;
+		return count;
 	}
 
 	// BUG with direction (Fixed but signature not updated).
@@ -501,7 +473,6 @@ namespace Snake2d {
 			// UPDATE SNAKE WITH NEW NECK AND HEAD
 			snake->increase(newSnakeNeck, newSnakeHead);
 
-			generateApple();
 			// FIXME: do something with assertions
 			//assertOneApple();
 
@@ -684,8 +655,6 @@ namespace Snake2d {
 			field[bodyBeforeTailCoords.y][bodyBeforeTailCoords.x] = newTail;
 
 			snake->move(newTail, newSnakeNeck, newSnakeHead);
-			// FIXME: added because sometimes there are no apples
-			generateApple();
 			break;
 		}
 		case GameObject::Type::SNAKE_BONE_DESTROYER: {
@@ -781,6 +750,8 @@ namespace Snake2d {
 		assertOnlyOneTail();
 		assertSnake();
 
+		worldUpdateResult.applesInWorld = count(GameObject::Type::APPLE);
+
 		return worldUpdateResult;
 	}
 	void World::afterUpdate(std::vector<WorldCondition*> postConditions) {
@@ -797,6 +768,10 @@ namespace Snake2d {
 				}
 				case WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER: {
 					generate(GameObject::Type::SNAKE_BONE_DESTROYER);
+					break;
+				}
+				case WorldConditionType::GENERATE_APPLE: {
+					generate(GameObject::Type::APPLE);
 					break;
 				}
 				default: {

@@ -26,12 +26,13 @@ namespace Snake2d {
 
 		// Holds unique game conditions that are used during game
 		std::map<WorldConditionType, WorldCondition*> postWorldConditions;
+
+		void initializePostWorldConditions();
 	public:
 		GameState();
 
 		void initialize();
 		void cleanUp();
-
 		void update(UserInput::Direction direction);
 
 		void changeView(GameView view) { this->view = view; }
