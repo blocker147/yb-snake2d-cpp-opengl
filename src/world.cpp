@@ -730,9 +730,12 @@ namespace Snake2d {
 		// TODO: replace this with separate method
 		std::vector<SnakeCorpse*> corpses = corpse->getCorpses();
 		std::vector<int> corpsesToRemove;
-		for (SnakeCorpse* sc : corpses)
+		for (SnakeCorpse* sc : corpses) {
+			sc->setTimeLeft(-(now - (sc->getCreatedAt() + sc->getDelay())));
 			if (now >= sc->getCreatedAt() + sc->getDelay())
 				corpsesToRemove.push_back(sc->index);
+		}
+
 		corpse->remove(corpsesToRemove);
 		for (int index : corpsesToRemove) {
 			Coordinate coordinate = getCoordinate(index);

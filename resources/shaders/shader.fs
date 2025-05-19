@@ -10,6 +10,7 @@ out vec4 FragColor;
 // 20x20 max world size expected
 uniform float u_world_size[400];
 uniform float u_world_rotations[400];
+uniform float u_snake_corpses_time_left[400];
 
 uniform sampler2D u_texture_apple;
 uniform sampler2D u_texture_snake_head;
@@ -50,9 +51,21 @@ void main() {
         }
         // Snake Corpse
         case 1: {
+            float timeLeft = u_snake_corpses_time_left[index];
+            float blinkIntensity = 1.0;
+
+            // start blinking
+            if (timeLeft <= 1000) {
+                int blinkCycle = int(timeLeft) % 1000;
+                blinkCycle /= 100;
+                blinkIntensity = blinkCycle % 2 == 0 ? 1.0 : 0.7;
+            }
+
             vec4 texColor = texture(u_texture_snake_corpse, rotatedTextureCoords);
+            vec3 redFade = mix(texColor.rgb, vec3(1.0, 0.0, 0.0), 1.0 - blinkIntensity);
+            float fadedAlpha = texColor.a * blinkIntensity;
             vec4 backgroundColor = vec4(f_color, 1.0);
-            FragColor = mix(backgroundColor, texColor, texColor.a);
+            FragColor = mix(backgroundColor, vec4(redFade, 1.0), fadedAlpha);
             break;
         }
         // Snake head

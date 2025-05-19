@@ -74,10 +74,14 @@ namespace Snake2d
 	private:
 		uint64_t createdAt;
 		uint64_t delay;
+		uint64_t timeLeft; // Used for Display purposes only (to make SnakeCorpse blinking at the end of time)
 	public:
-		SnakeCorpse(int index, uint64_t createdAt, uint64_t delay) : GameObject(index), createdAt(createdAt), delay(delay) {}
+		SnakeCorpse(int index, uint64_t createdAt, uint64_t delay)
+			: GameObject(index), createdAt(createdAt), delay(delay), timeLeft(delay) {}
 		uint64_t getDelay() const { return delay; }
 		uint64_t getCreatedAt() const { return createdAt; }
+		void setTimeLeft(uint64_t timeLeft) { this->timeLeft = timeLeft; }
+		uint64_t getTimeLeft() const { return timeLeft; }
 		Type getType() const { return Type::SNAKE_CORPSE; }
 	};
 

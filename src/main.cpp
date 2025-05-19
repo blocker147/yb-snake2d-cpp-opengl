@@ -199,8 +199,9 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 
 	// UI_RENDERING
 	auto world = gameState.getWorld();
-	float* openglWorld		= new float[WORLD_WIDTH * WORLD_HEIGHT];
-	float* openglRotations	= new float[WORLD_WIDTH * WORLD_HEIGHT];
+	float* openglWorld			= new float[WORLD_WIDTH * WORLD_HEIGHT];
+	float* openglRotations		= new float[WORLD_WIDTH * WORLD_HEIGHT];
+	float* snakeCorpsesTimeLeft = new float[WORLD_WIDTH * WORLD_HEIGHT];
 	for (int x = 0; x < world.size(); x++)
 		for (int y = 0; y < world[x].size(); y++) {
 			Snake2d::GameObject* go = world[y][x];
@@ -208,7 +209,12 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 			openglRotations[index] = go->getRotation();
 			switch (go->getType()) {
 				case Snake2d::GameObject::Type::NONE:					openglWorld[index] = 0; break;
-				case Snake2d::GameObject::Type::SNAKE_CORPSE:			openglWorld[index] = 1; break;
+				case Snake2d::GameObject::Type::SNAKE_CORPSE: {
+					Snake2d::SnakeCorpse* sc = dynamic_cast<Snake2d::SnakeCorpse*>(go);
+					openglWorld[index] = 1;
+					snakeCorpsesTimeLeft[index] = sc->getTimeLeft();
+					break;
+				}
 				case Snake2d::GameObject::Type::SNAKE_HEAD:				openglWorld[index] = 2; break;
 				case Snake2d::GameObject::Type::SNAKE_BODY: {
 					Snake2d::SnakeBody* body = dynamic_cast<Snake2d::SnakeBody*>(go);
@@ -262,10 +268,12 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 	shader->setInt("u_texture_apple_line_spawner",		7);
 	shader->setInt("u_texture_snake_bone_destroyer",	8);
 
-	shader->setFloatArray("u_world_size",		WORLD_WIDTH * WORLD_HEIGHT, openglWorld);
-	shader->setFloatArray("u_world_rotations",	WORLD_WIDTH * WORLD_HEIGHT, openglRotations);
+	shader->setFloatArray("u_world_size",				WORLD_WIDTH * WORLD_HEIGHT, openglWorld);
+	shader->setFloatArray("u_world_rotations",			WORLD_WIDTH * WORLD_HEIGHT, openglRotations);
+	shader->setFloatArray("u_snake_corpses_time_left",	WORLD_WIDTH * WORLD_HEIGHT, snakeCorpsesTimeLeft);
 	delete[] openglWorld;
 	delete[] openglRotations;
+	delete[] snakeCorpsesTimeLeft;
 
 	glBindVertexArray(VAO);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
