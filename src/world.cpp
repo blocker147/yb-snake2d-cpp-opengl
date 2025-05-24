@@ -67,13 +67,13 @@ namespace Snake2d {
 	int World::getIndex(Coordinate coordinate) {
 		return width * (coordinate.y + 1) - width + coordinate.x;
 	}
-	World::Coordinate World::getCoordinate(int index) {
+	Coordinate World::getCoordinate(int index) {
 		int x = index % width;
 		int y = index / width;
 		return Coordinate{ x, y };
 	}
 
-	World::Coordinate World::getNextSnakeHead(UserInput::Direction direction, Coordinate coordinate) {
+	Coordinate World::getNextSnakeHead(UserInput::Direction direction, Coordinate coordinate) {
 		int x = coordinate.x, y = coordinate.y;
 
 		switch (direction)

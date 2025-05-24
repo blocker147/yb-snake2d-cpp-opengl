@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <filesystem>
+#include <optional>
 
 #include "shader.h"
 
@@ -14,6 +15,7 @@
 #include "font_renderer.h"
 
 Snake2d::GameState gameState;
+// TODO: move those variables in separate class (GameConfig)
 const int WORLD_WIDTH = 20, WORLD_HEIGHT = 20;
 
 GLFWwindow* createWindow(Snake2d::SettingsManager&);
@@ -24,7 +26,7 @@ void keyCallback(GLFWwindow*, int, int, int, int);
 bool mouseOnRectangle = false;
 
 void handleMainMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::SettingsManager&, Snake2d::ShaderManager*);
-void handlePlayingGameMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::SettingsManager&, Snake2d::ShaderManager*, Snake2d::TextureManager&);
+void handlePlayingGameMenu(float, Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::SettingsManager&, Snake2d::ShaderManager*, Snake2d::TextureManager&, Snake2d::AudioManager&, Snake2d::ParticleManager&);
 void handleGameOverMenu(Snake2d::GameState&, Snake2d::FontRenderer&, Snake2d::SettingsManager&, Snake2d::ShaderManager*);
 
 int main()
@@ -38,26 +40,36 @@ int main()
 	// UI_INITIALIZATION
 	// TODO: Move FontRenderer to resource_manager.h and rename it to FontManager
 	Snake2d::FontRenderer fontRenderer(settingsManager);
+	// TODO: Font loading can be done in FontManager constructor
 	fontRenderer.loadFont(Snake2d::FontType::ANTONIO_BOLD, "Antonio-Bold.ttf");
 	Snake2d::ShaderManager* shaderManager = new Snake2d::ShaderManager(WORLD_WIDTH, WORLD_HEIGHT);
 	Snake2d::TextureManager textureManager;
 	Snake2d::AudioManager audioManager;
+	Snake2d::ParticleManager particleManager;
 
 	audioManager.play(Snake2d::AudioType::ANY_MENU_BACKGROUND_MUSIC, true);
-	
+
+	const double FPS_LIMIT = 1.0 / 60.0;
+	double lastFrameTime = glfwGetTime();
 	while (!glfwWindowShouldClose(window)) {
+		double currentFrameTime = glfwGetTime();
+		double deltaTime = currentFrameTime - lastFrameTime;
+		if (deltaTime < FPS_LIMIT)
+			continue;
+		lastFrameTime = currentFrameTime;
+
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		switch (gameState.getView()) {
-			case Snake2d::GameView::MAIN_MENU:
-				handleMainMenu(gameState, fontRenderer, settingsManager, shaderManager); break;
-			case Snake2d::GameView::PLAYING_GAME_MENU:
-				handlePlayingGameMenu(gameState, fontRenderer, settingsManager, shaderManager, textureManager); break;
-			case Snake2d::GameView::GAME_OVER_MENU:
-				handleGameOverMenu(gameState, fontRenderer, settingsManager, shaderManager); break;
+		case Snake2d::GameView::MAIN_MENU:
+			handleMainMenu(gameState, fontRenderer, settingsManager, shaderManager); break;
+		case Snake2d::GameView::PLAYING_GAME_MENU:
+			handlePlayingGameMenu(deltaTime, gameState, fontRenderer, settingsManager, shaderManager, textureManager, audioManager, particleManager); break;
+		case Snake2d::GameView::GAME_OVER_MENU:
+			handleGameOverMenu(gameState, fontRenderer, settingsManager, shaderManager); break;
 		}
-		
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -89,6 +101,7 @@ GLFWwindow* createWindow(Snake2d::SettingsManager& settingsManager)
 		glfwTerminate();
 	}
 	glfwMakeContextCurrent(window);
+	glfwSwapInterval(1);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -162,14 +175,16 @@ void handleMainMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRe
 	// GAME_LOGIC_SETUP
 	gameState.initialize();
 
+
 	// UI_RENDERING
-	auto [shader, VAO] = shaderManager->getShaderAndVAO(Snake2d::ShaderType::MENU);
-	shader->use();
-	shader->setBool("hover", mouseOnRectangle);
-	shader->setBool("isOver", false);
-	glBindVertexArray(VAO);
+	auto& menuShaderData = shaderManager->get(Snake2d::ShaderType::MENU);
+	menuShaderData.shader->use();
+	menuShaderData.shader->setBool("hover", mouseOnRectangle);
+	menuShaderData.shader->setBool("isOver", false);
+	glBindVertexArray(menuShaderData.vao);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+
 
 	// FONT_RENDERING
 	fontRenderer.renderText(
@@ -190,14 +205,16 @@ void handleMainMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRe
 		glm::vec3(0.0f, 0.0f, 0.0f)
 	);
 }
-void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRenderer, Snake2d::SettingsManager& settingsManager, Snake2d::ShaderManager* shaderManager, Snake2d::TextureManager& textureManager)
+void handlePlayingGameMenu(float deltaTime, Snake2d::GameState& gameState, Snake2d::FontRenderer& fontRenderer, Snake2d::SettingsManager& settingsManager, Snake2d::ShaderManager* shaderManager, Snake2d::TextureManager& textureManager, Snake2d::AudioManager& audioManager, Snake2d::ParticleManager& particleManager)
 {
 	mouseOnRectangle = false;
 
-	// GAME_LOGIC_UPDATE
-	gameState.update(UserInput::direction);
 
-	// UI_RENDERING
+	// GAME_LOGIC_UPDATE
+	std::optional<Snake2d::World::WorldUpdateResult> worldUpdateResult = gameState.update(UserInput::direction);
+
+
+	// FIELD_RENDERING
 	auto world = gameState.getWorld();
 	float* openglWorld			= new float[WORLD_WIDTH * WORLD_HEIGHT];
 	float* openglRotations		= new float[WORLD_WIDTH * WORLD_HEIGHT];
@@ -208,34 +225,34 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 			int index = y * WORLD_WIDTH + x;
 			openglRotations[index] = go->getRotation();
 			switch (go->getType()) {
-				case Snake2d::GameObject::Type::NONE:					openglWorld[index] = 0; break;
-				case Snake2d::GameObject::Type::SNAKE_CORPSE: {
-					Snake2d::SnakeCorpse* sc = dynamic_cast<Snake2d::SnakeCorpse*>(go);
-					openglWorld[index] = 1;
-					snakeCorpsesTimeLeft[index] = sc->getTimeLeft();
-					break;
-				}
-				case Snake2d::GameObject::Type::SNAKE_HEAD:				openglWorld[index] = 2; break;
-				case Snake2d::GameObject::Type::SNAKE_BODY: {
-					Snake2d::SnakeBody* body = dynamic_cast<Snake2d::SnakeBody*>(go);
-					if (body->segment == Snake2d::SnakeBody::Segment::Straight)
-						openglWorld[index] = 3;
-					else if (body->segment == Snake2d::SnakeBody::Segment::Rotated)
-						openglWorld[index] = 8;
-					else
-						std::cout << "WARNING: unexpected SnakeBody Segment provided: " << body->segment << std::endl;
-					break;
-				}
-				case Snake2d::GameObject::Type::APPLE:					openglWorld[index] = 4;	break;
-				case Snake2d::GameObject::Type::APPLE_LINE_SPAWNER:		openglWorld[index] = 5; break;
-				case Snake2d::GameObject::Type::SNAKE_BONE:				openglWorld[index] = 6; break;
-				case Snake2d::GameObject::Type::SNAKE_TAIL:				openglWorld[index] = 7; break;
-				case Snake2d::GameObject::Type::SNAKE_BONE_DESTROYER:	openglWorld[index] = 9; break;
+			case Snake2d::GameObject::Type::NONE:					openglWorld[index] = 0; break;
+			case Snake2d::GameObject::Type::SNAKE_CORPSE: {
+				Snake2d::SnakeCorpse* sc = dynamic_cast<Snake2d::SnakeCorpse*>(go);
+				openglWorld[index] = 1;
+				snakeCorpsesTimeLeft[index] = sc->getTimeLeft();
+				break;
+			}
+			case Snake2d::GameObject::Type::SNAKE_HEAD:				openglWorld[index] = 2; break;
+			case Snake2d::GameObject::Type::SNAKE_BODY: {
+				Snake2d::SnakeBody* body = dynamic_cast<Snake2d::SnakeBody*>(go);
+				if (body->segment == Snake2d::SnakeBody::Segment::Straight)
+					openglWorld[index] = 3;
+				else if (body->segment == Snake2d::SnakeBody::Segment::Rotated)
+					openglWorld[index] = 8;
+				else
+					std::cout << "WARNING: unexpected SnakeBody Segment provided: " << body->segment << std::endl;
+				break;
+			}
+			case Snake2d::GameObject::Type::APPLE:					openglWorld[index] = 4;	break;
+			case Snake2d::GameObject::Type::APPLE_LINE_SPAWNER:		openglWorld[index] = 5; break;
+			case Snake2d::GameObject::Type::SNAKE_BONE:				openglWorld[index] = 6; break;
+			case Snake2d::GameObject::Type::SNAKE_TAIL:				openglWorld[index] = 7; break;
+			case Snake2d::GameObject::Type::SNAKE_BONE_DESTROYER:	openglWorld[index] = 9; break;
 			}
 		}
 
-	auto [shader, VAO] = shaderManager->getShaderAndVAO(Snake2d::ShaderType::CELL);
-	shader->use();
+	auto& fieldShaderData = shaderManager->get(Snake2d::ShaderType::CELL);
+	fieldShaderData.shader->use();
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -258,27 +275,57 @@ void handlePlayingGameMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer&
 	glActiveTexture(GL_TEXTURE8);
 	glBindTexture(GL_TEXTURE_2D, textureManager.getTextureId(Snake2d::TextureType::SNAKE_BONE_DESTROYER));
 
-	shader->setInt("u_texture_apple",					0);
-	shader->setInt("u_texture_snake_head",				1);
-	shader->setInt("u_texture_snake_body_tail",			2);
-	shader->setInt("u_texture_snake_body_straight",		3);
-	shader->setInt("u_texture_snake_body_rotated",		4);
-	shader->setInt("u_texture_snake_corpse",			5);
-	shader->setInt("u_texture_snake_bone",				6);
-	shader->setInt("u_texture_apple_line_spawner",		7);
-	shader->setInt("u_texture_snake_bone_destroyer",	8);
+	fieldShaderData.shader->setInt("u_texture_apple",					0);
+	fieldShaderData.shader->setInt("u_texture_snake_head",				1);
+	fieldShaderData.shader->setInt("u_texture_snake_body_tail",			2);
+	fieldShaderData.shader->setInt("u_texture_snake_body_straight",		3);
+	fieldShaderData.shader->setInt("u_texture_snake_body_rotated",		4);
+	fieldShaderData.shader->setInt("u_texture_snake_corpse",			5);
+	fieldShaderData.shader->setInt("u_texture_snake_bone",				6);
+	fieldShaderData.shader->setInt("u_texture_apple_line_spawner",		7);
+	fieldShaderData.shader->setInt("u_texture_snake_bone_destroyer",	8);
 
-	shader->setFloatArray("u_world_size",				WORLD_WIDTH * WORLD_HEIGHT, openglWorld);
-	shader->setFloatArray("u_world_rotations",			WORLD_WIDTH * WORLD_HEIGHT, openglRotations);
-	shader->setFloatArray("u_snake_corpses_time_left",	WORLD_WIDTH * WORLD_HEIGHT, snakeCorpsesTimeLeft);
+	fieldShaderData.shader->setFloatArray("u_world_size",				WORLD_WIDTH * WORLD_HEIGHT, openglWorld);
+	fieldShaderData.shader->setFloatArray("u_world_rotations",			WORLD_WIDTH * WORLD_HEIGHT, openglRotations);
+	fieldShaderData.shader->setFloatArray("u_snake_corpses_time_left",	WORLD_WIDTH * WORLD_HEIGHT, snakeCorpsesTimeLeft);
 	delete[] openglWorld;
 	delete[] openglRotations;
 	delete[] snakeCorpsesTimeLeft;
 
-	glBindVertexArray(VAO);
+	glBindVertexArray(fieldShaderData.vao);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glDrawArrays(GL_TRIANGLES, 0, WORLD_WIDTH * WORLD_HEIGHT * 6);
 	glDisable(GL_BLEND);
+
+
+	// PARTICLES_RENDERING
+	auto& particleShaderData = shaderManager->get(Snake2d::ShaderType::PARTICLES);
+	particleShaderData.shader->use();
+
+	particleManager.removeDead();
+
+	if (worldUpdateResult) {
+		Snake2d::Coordinate collisionAt = worldUpdateResult->collisionAt;
+		std::pair<float, float> position = collisionAt.toClipSpace(WORLD_WIDTH, WORLD_HEIGHT);
+
+		switch (worldUpdateResult->collisionWith) {
+			case Snake2d::GameObject::Type::APPLE: {
+				particleManager.add(Snake2d::ParticleType::APPLE_EATEN, position);
+				break;
+			}
+		}
+	}
+
+	particleManager.update(deltaTime);
+
+	std::vector<Snake2d::Particle> particlesData = particleManager.getAll();
+
+	glBindBuffer(GL_ARRAY_BUFFER, particleShaderData.vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, particlesData.size() * sizeof(Snake2d::Particle), particlesData.data());
+
+	glBindVertexArray(particleShaderData.vao);
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, particlesData.size());
+
 
 	// FONT_RENDERING
 	fontRenderer.renderText(
@@ -296,11 +343,11 @@ void handleGameOverMenu(Snake2d::GameState& gameState, Snake2d::FontRenderer& fo
 	gameState.cleanUp();
 
 	// UI_RENDERING
-	auto [shader, VAO] = shaderManager->getShaderAndVAO(Snake2d::ShaderType::MENU);
-	shader->use();
-	shader->setBool("hover", mouseOnRectangle);
-	shader->setBool("isOver", true);
-	glBindVertexArray(VAO);
+	auto& menuShaderData = shaderManager->get(Snake2d::ShaderType::MENU);
+	menuShaderData.shader->use();
+	menuShaderData.shader->setBool("hover", mouseOnRectangle);
+	menuShaderData.shader->setBool("isOver", true);
+	glBindVertexArray(menuShaderData.vao);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 

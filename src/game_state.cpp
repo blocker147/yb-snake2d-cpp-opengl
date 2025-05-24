@@ -57,7 +57,7 @@ namespace Snake2d {
 
 		isInitialized = false;
 	}
-	void GameState::update(UserInput::Direction direction) {
+	std::optional<World::WorldUpdateResult> GameState::update(UserInput::Direction direction) {
 		uint64_t now = Clock::whatTimeIsIt();
 
 		if (worldTimer->shouldUpdate(now)) {
@@ -89,9 +89,13 @@ namespace Snake2d {
 			for (auto& [_, worldCondition] : postWorldConditions)
 				postWorldConditionsValues.push_back(worldCondition);
 			world->afterUpdate(postWorldConditionsValues);
+
+			if (isGameOver)
+				this->changeView(Snake2d::GameView::GAME_OVER_MENU);
+
+			return worldUpdateResult;
 		}
 
-		if (isGameOver)
-			this->changeView(Snake2d::GameView::GAME_OVER_MENU);
+		return std::nullopt;
 	}
 }

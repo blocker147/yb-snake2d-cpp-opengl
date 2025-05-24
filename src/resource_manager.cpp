@@ -4,10 +4,11 @@ namespace Snake2d {
 	ShaderManager::ShaderManager(int width, int height) {
 		createCellShader(width, height);
 		createMenuShader();
+		createParticlesShader();
 	}
 	void ShaderManager::createCellShader(int width, int height) {
-		std::string vertexShader = Snake2d::SHADER_DIR + "shader.vs";
-		std::string fragmentShader = Snake2d::SHADER_DIR + "shader.fs";
+		std::string vertexShader = Snake2d::SHADER_DIR + "shader_field.vs";
+		std::string fragmentShader = Snake2d::SHADER_DIR + "shader_field.fs";
 		Shader* shader = new Shader(vertexShader.c_str(), fragmentShader.c_str());
 
 		const int VAO_INDEX_ID = 0;
@@ -107,7 +108,7 @@ namespace Snake2d {
 		glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * 7));
 		glEnableVertexAttribArray(3);
 
-		shaders[ShaderType::CELL] = std::make_pair(shader, VAO);
+		shaders[ShaderType::CELL] = ShaderData(shader, VAO);
 	}
 	void ShaderManager::createMenuShader() {
 		std::string vertexShader = Snake2d::SHADER_DIR + "shader_menu.vs";
@@ -135,7 +136,58 @@ namespace Snake2d {
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
 
-		shaders[ShaderType::MENU] = std::make_pair(menuShader, VAO);
+		shaders[ShaderType::MENU] = ShaderData(menuShader, VAO);
+	}
+	void ShaderManager::createParticlesShader() {
+		std::string vertexShader = Snake2d::SHADER_DIR + "shader_particles.vs";
+		std::string fragmentShader = Snake2d::SHADER_DIR + "shader_particles.fs";
+
+		Shader* shader = new Shader(vertexShader.c_str(), fragmentShader.c_str());
+
+		float quad[] = {
+			-0.5f, -0.5f, 0.0f,
+			 0.5f, -0.5f, 0.0f,
+			 0.5f,  0.5f, 0.0f,
+
+			 0.5f,  0.5f, 0.0f,
+			-0.5f,  0.5f, 0.0f,
+			-0.5f, -0.5f, 0.0f
+		};
+
+		unsigned int quadVBO, quadVAO;
+		glGenVertexArrays(1, &quadVAO);
+		glBindVertexArray(quadVAO);
+
+		glGenBuffers(1, &quadVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+
+		int maxParticles = 500; // TODO: how much???
+		unsigned int particleVBO;
+		glGenBuffers(1, &particleVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, particleVBO);
+		glBufferData(GL_ARRAY_BUFFER, maxParticles * sizeof(Particle), nullptr, GL_DYNAMIC_DRAW);
+
+		// Position
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, offset));
+		glVertexAttribDivisor(1, 1);
+
+		// Color
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, color));
+		glVertexAttribDivisor(2, 1);
+
+		// Size
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, size));
+		glVertexAttribDivisor(3, 1);
+
+		shaders[ShaderType::PARTICLES] = ShaderData(shader, quadVAO, particleVBO);
 	}
 
 	TextureManager::TextureManager() {
@@ -187,7 +239,7 @@ namespace Snake2d {
 		soundEngine = irrklang::createIrrKlangDevice();
 
 		std::string audioPath = Snake2d::AUDIO_DIR;
-		audios[AudioType::ANY_MENU_BACKGROUND_MUSIC] = audioPath + "breakout.wav";
+		audios[AudioType::ANY_MENU_BACKGROUND_MUSIC] = audioPath + "background.wav";
 	}
 	void AudioManager::play(AudioType type, bool playLooped) {
 		soundEngine->play2D(audios[type].c_str(), playLooped);
@@ -224,5 +276,83 @@ namespace Snake2d {
 				}
 			}
 		}
+	}
+	
+	void ParticleManager::removeDead() {
+		for (auto& [type, particles] : particlesMap)
+			particles.erase(
+				std::remove_if(particles.begin(), particles.end(),
+					[](Particle& p) {
+						return p.life <= 0.0f;
+					}),
+				particles.end()
+			);
+	}
+	void ParticleManager::add(ParticleType type, std::pair<float, float> position) {
+		auto [clipX, clipY] = position;
+		constexpr float M_PI = 3.14159265358979323846f;
+
+		switch (type) {
+			case ParticleType::APPLE_EATEN: {
+				int eatenAppleParticles = 5; 
+				for (int i = 0; i < eatenAppleParticles; i++) {
+					std::random_device rd;
+					std::mt19937 gen(rd());
+					std::uniform_real_distribution<float> dist(-0.05f, 0.05f);
+
+					float randomOffsetX = dist(gen);
+					float randomOffsetY = dist(gen);
+
+					clipX += randomOffsetX;
+					clipY += randomOffsetY;
+
+					float life = 2.0f + static_cast<float>(rand()) / RAND_MAX * 0.2f;
+					float maxLife = life;
+					std::uniform_real_distribution<float> speedDist(0.1f, 0.5f);
+					std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * M_PI);
+
+					float angle = angleDist(gen);
+					float speed = speedDist(gen);
+					float size = 0.01f;
+					glm::vec2 offset = glm::vec2(clipX, clipY);
+					glm::vec4 color = glm::vec4(1.0f, 0.1f + dist(gen) * 0.2f, 0.1f, 1.0f);
+					glm::vec2 velocity = glm::vec2(cos(angle), sin(angle)) * speed;
+
+					Snake2d::Particle particle = Snake2d::Particle{
+						offset, color, velocity, size, life, maxLife
+					};
+					particlesMap[ParticleType::APPLE_EATEN].push_back(particle);
+
+				}
+				break;
+			}
+		}
+	}
+	void ParticleManager::update(float deltaTime) {
+		for (auto& [type, particles] : particlesMap) {
+			switch (type) {
+				case ParticleType::APPLE_EATEN: {
+					for (Particle& p : particles) {
+						p.life -= deltaTime;
+						if (p.life > 0.0f) {
+							p.offset += p.velocity * deltaTime;
+
+							float lifeRatio = p.life / p.maxLife;
+							p.color.a = lifeRatio;
+							p.size *= lifeRatio;
+						}
+					}
+					break;
+				}
+			}
+		}
+	}
+	std::vector<Particle> ParticleManager::getAll() {
+		std::vector<Particle> allParticles;
+		for (auto& [_, particles] : particlesMap)
+			for (Particle& particle : particles)
+				allParticles.push_back(particle);
+
+		return allParticles;
 	}
 }

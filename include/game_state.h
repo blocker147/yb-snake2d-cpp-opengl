@@ -2,6 +2,7 @@
 #define SNAKE2D_GAME_STATE_H
 
 #include <vector>
+#include <optional>
 
 #include "game_object.h"
 #include "world.h"
@@ -33,7 +34,7 @@ namespace Snake2d {
 
 		void initialize();
 		void cleanUp();
-		void update(UserInput::Direction direction);
+		std::optional<World::WorldUpdateResult> update(UserInput::Direction direction);
 
 		void changeView(GameView view) { this->view = view; }
 		GameView getView() const { return this->view; }

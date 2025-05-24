@@ -5,23 +5,29 @@
 
 #include <map>
 #include <iostream>
+#include <random>
 
 #include "shader.h"
 #include "file_utils.h"
 #include <irrklang/irrKlang.h>
 
 namespace Snake2d {
-	enum ShaderType { CELL, MENU };
+	struct ShaderData {
+		Shader* shader = nullptr;
+		GLuint vao = 0;
+		GLuint vbo = 0;
+	};
+	enum ShaderType { CELL, MENU, PARTICLES };
 	class ShaderManager {
 	private:
-		std::map<ShaderType, std::pair<Shader*, unsigned int>> shaders;
+		std::map<ShaderType, ShaderData> shaders;
 
 		void createCellShader(int width, int height);
 		void createMenuShader();
+		void createParticlesShader();
 	public:
 		ShaderManager(int width, int height);
-
-		std::pair<Shader*, unsigned int> getShaderAndVAO(ShaderType type) {	return shaders[type]; }
+		ShaderData& get(ShaderType type) { return shaders.at(type); }
 	};
 
 	enum TextureType {
@@ -70,6 +76,25 @@ namespace Snake2d {
 
 		int getScreenWidth() const { return screenWidth; }
 		int getScreenHeight() const { return screenHeight; }
+	};
+
+	enum ParticleType { APPLE_EATEN };
+	struct Particle {				// Represented as a square
+		glm::vec2 offset;			// offset location relative to initial position - middle of the screen
+		glm::vec4 color;			// rgba color
+		glm::vec2 velocity;			// in which direction to move
+		float size;					// size of square
+		float life;					// current life time
+		float maxLife;				// initial life time
+	};
+	class ParticleManager {
+	private:
+		std::map<ParticleType, std::vector<Particle>> particlesMap;
+	public:
+		void removeDead();
+		void add(ParticleType type, std::pair<float, float> position);
+		void update(float deltaTime);
+		std::vector<Particle> getAll();
 	};
 }
 

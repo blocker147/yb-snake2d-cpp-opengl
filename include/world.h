@@ -74,10 +74,16 @@ namespace Snake2d {
 		WorldConditionType getType() const { return conditionType; }
 	};
 
+	struct Coordinate {
+		int x, y;
+		std::pair<float, float> toClipSpace(int fieldWidth, int fieldHeight) const {
+			float clipX = -1.0f + (x + 0.5f) * (2.0f / fieldWidth);
+			float clipY = 1.0f - (y + 0.5f) * (2.0f / fieldHeight);
+			return std::pair(clipX, clipY);
+		}
+	};
 	class World {
 	private:
-		struct Coordinate { int x, y; };
-
 		const int height, width;
 		std::vector<std::vector<GameObject*>> field;
 		Snake* snake;
