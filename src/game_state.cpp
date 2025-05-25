@@ -35,9 +35,9 @@ namespace Snake2d {
 		WorldCondition* whenToGenerateSnakeBoneDestroyer = new WorldCondition(
 			10, WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER
 		);
-		postWorldConditions[WorldConditionType::GENERATE_APPLE] = whenToGenerateApple;
-		postWorldConditions[WorldConditionType::GENERATE_APPLE_LINE_SPAWNER] = whenToGenerateAppleLineSpawnerCondition;
-		postWorldConditions[WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER] = whenToGenerateSnakeBoneDestroyer;
+		postWorldConditions[WorldConditionType::GENERATE_APPLE]						= whenToGenerateApple;
+		postWorldConditions[WorldConditionType::GENERATE_APPLE_LINE_SPAWNER]		= whenToGenerateAppleLineSpawnerCondition;
+		postWorldConditions[WorldConditionType::GENERATE_SNAKE_BONE_DESTROYER]		= whenToGenerateSnakeBoneDestroyer;
 
 	}
 	void GameState::cleanUp() {

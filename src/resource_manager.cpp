@@ -263,7 +263,6 @@ namespace Snake2d {
 		else
 			soundEngine->play2D(audios[type].c_str(), playLooped);
 	}
-
 	void AudioManager::playRandomly(AudioType type, bool playLooped) {
 		std::vector<AudioType> randomAudios;
 		switch (type) {
@@ -413,7 +412,7 @@ namespace Snake2d {
 					Snake2d::Particle particle = Snake2d::Particle{
 						offset, color, velocity, size, life, maxLife
 					};
-					particlesMap[ParticleType::APPLE_EATEN].push_back(particle);
+					particlesMap[ParticleType::CORPSE_EATEN].push_back(particle);
 
 				}
 				break;
@@ -446,7 +445,7 @@ namespace Snake2d {
 					Snake2d::Particle particle = Snake2d::Particle{
 						offset, color, velocity, size, life, maxLife
 					};
-					particlesMap[ParticleType::APPLE_EATEN].push_back(particle);
+					particlesMap[ParticleType::BONE_DESTROYED].push_back(particle);
 
 				}
 				break;
