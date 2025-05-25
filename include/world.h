@@ -122,6 +122,7 @@ namespace Snake2d {
 		struct WorldUpdateResult {
 			GameObject::Type collisionWith;
 			Coordinate collisionAt;
+			std::vector<Coordinate> destroyedSnakeBones;
 
 			int lifeDelta = 0;
 			int scoreDelta = 0;

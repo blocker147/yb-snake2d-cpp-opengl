@@ -658,13 +658,16 @@ namespace Snake2d {
 			break;
 		}
 		case GameObject::Type::SNAKE_BONE_DESTROYER: {
+			std::vector<Coordinate> destroyedSnakeBones;
 			for (SnakeBone* bone : bone->getBones()) {
 				int index = bone->index;
 				Coordinate snakeBoneCoordinate = getCoordinate(index);
+				destroyedSnakeBones.push_back(snakeBoneCoordinate);
 				delete field[snakeBoneCoordinate.y][snakeBoneCoordinate.x];
 				None* none = new None(index);
 				field[snakeBoneCoordinate.y][snakeBoneCoordinate.x] = none;
 			}
+			worldUpdateResult.destroyedSnakeBones = destroyedSnakeBones;
 			bone->clear();
 
 			// ADD NEW HEAD (instead of old none)
@@ -693,7 +696,6 @@ namespace Snake2d {
 			field[bodyBeforeTailCoords.y][bodyBeforeTailCoords.x] = newTail;
 
 			snake->move(newTail, newSnakeNeck, newSnakeHead);
-			// FIXME: added because sometimes there are no apples
 			break;
 		}
 		default: {

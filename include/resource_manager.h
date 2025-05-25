@@ -52,7 +52,12 @@ namespace Snake2d {
 		unsigned int getTextureId(TextureType type) { return textures[type]; }
 	};
 
-	enum AudioType { ANY_MENU_BACKGROUND_MUSIC };
+	enum AudioType {
+		ANY_MENU_BACKGROUND_MUSIC,
+		APPLE_EATEN_RANDOM, APPLE_EATEN_0, APPLE_EATEN_1, APPLE_EATEN_2,
+		CORPSE_EATEN_RANDOM, CORPSE_EATEN_0, CORPSE_EATEN_1, CORPSE_EATEN_2,
+		BONE_DESTROYED_RANDOM, BONE_DESTROYED_0, BONE_DESTROYED_1
+	};
 	class AudioManager {
 	private:
 		irrklang::ISoundEngine* soundEngine;
@@ -63,7 +68,8 @@ namespace Snake2d {
 			delete soundEngine;
 		}
 
-		void play(AudioType type, bool playLooped = false);
+		void play(AudioType type, bool playLooped = false, bool isBackground = false);
+		void playRandomly(AudioType type, bool playLooped = false);
 	};
 
 	class SettingsManager {
@@ -78,7 +84,11 @@ namespace Snake2d {
 		int getScreenHeight() const { return screenHeight; }
 	};
 
-	enum ParticleType { APPLE_EATEN };
+	enum ParticleType {
+		APPLE_EATEN,
+		CORPSE_EATEN,
+		BONE_DESTROYED
+	};
 	struct Particle {				// Represented as a square
 		glm::vec2 offset;			// offset location relative to initial position - middle of the screen
 		glm::vec4 color;			// rgba color

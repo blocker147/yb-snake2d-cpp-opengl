@@ -47,7 +47,7 @@ int main()
 	Snake2d::AudioManager audioManager;
 	Snake2d::ParticleManager particleManager;
 
-	audioManager.play(Snake2d::AudioType::ANY_MENU_BACKGROUND_MUSIC, true);
+	audioManager.play(Snake2d::AudioType::ANY_MENU_BACKGROUND_MUSIC, true, true);
 
 	const double FPS_LIMIT = 1.0 / 60.0;
 	double lastFrameTime = glfwGetTime();
@@ -306,11 +306,30 @@ void handlePlayingGameMenu(float deltaTime, Snake2d::GameState& gameState, Snake
 
 	if (worldUpdateResult) {
 		Snake2d::Coordinate collisionAt = worldUpdateResult->collisionAt;
-		std::pair<float, float> position = collisionAt.toClipSpace(WORLD_WIDTH, WORLD_HEIGHT);
+		std::pair<float, float> collisionAtInClipSpace = collisionAt.toClipSpace(WORLD_WIDTH, WORLD_HEIGHT);
 
 		switch (worldUpdateResult->collisionWith) {
 			case Snake2d::GameObject::Type::APPLE: {
-				particleManager.add(Snake2d::ParticleType::APPLE_EATEN, position);
+				particleManager.add(Snake2d::ParticleType::APPLE_EATEN, collisionAtInClipSpace);
+				audioManager.playRandomly(Snake2d::AudioType::APPLE_EATEN_RANDOM);
+				break;
+			}
+			case Snake2d::GameObject::Type::SNAKE_CORPSE: {
+				particleManager.add(Snake2d::ParticleType::CORPSE_EATEN, collisionAtInClipSpace);
+				audioManager.playRandomly(Snake2d::AudioType::CORPSE_EATEN_RANDOM);
+				break;
+			}
+			case Snake2d::GameObject::Type::SNAKE_BONE: {
+				particleManager.add(Snake2d::ParticleType::BONE_DESTROYED, collisionAtInClipSpace);
+				audioManager.playRandomly(Snake2d::AudioType::BONE_DESTROYED_RANDOM);
+				break;
+			}
+			case Snake2d::GameObject::Type::SNAKE_BONE_DESTROYER: {
+				for (auto& coordinate : worldUpdateResult->destroyedSnakeBones) {
+					std::pair<float, float> coordinateInClipSpace = coordinate.toClipSpace(WORLD_WIDTH, WORLD_HEIGHT);
+					particleManager.add(Snake2d::ParticleType::BONE_DESTROYED, coordinateInClipSpace);
+				}
+				audioManager.playRandomly(Snake2d::AudioType::BONE_DESTROYED_RANDOM);
 				break;
 			}
 		}

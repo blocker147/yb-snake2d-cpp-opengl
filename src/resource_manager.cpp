@@ -239,10 +239,64 @@ namespace Snake2d {
 		soundEngine = irrklang::createIrrKlangDevice();
 
 		std::string audioPath = Snake2d::AUDIO_DIR;
-		audios[AudioType::ANY_MENU_BACKGROUND_MUSIC] = audioPath + "background.wav";
+		audios[AudioType::ANY_MENU_BACKGROUND_MUSIC]	= audioPath + "background.wav";
+		audios[AudioType::APPLE_EATEN_RANDOM]			= audioPath + "apple_eaten_0.wav";
+		audios[AudioType::APPLE_EATEN_0]				= audioPath + "apple_eaten_0.wav";
+		audios[AudioType::APPLE_EATEN_1]				= audioPath + "apple_eaten_1.wav";
+		audios[AudioType::APPLE_EATEN_2]				= audioPath + "apple_eaten_2.wav";
+		audios[AudioType::CORPSE_EATEN_RANDOM]			= audioPath + "corpse_eaten_0.wav";
+		audios[AudioType::CORPSE_EATEN_0]				= audioPath + "corpse_eaten_0.wav";
+		audios[AudioType::CORPSE_EATEN_1]				= audioPath + "corpse_eaten_1.wav";
+		audios[AudioType::CORPSE_EATEN_2]				= audioPath + "corpse_eaten_2.wav";
+		audios[AudioType::BONE_DESTROYED_RANDOM]		= audioPath + "bone_destroyed_0.wav";
+		audios[AudioType::BONE_DESTROYED_0]				= audioPath + "bone_destroyed_0.wav";
+		audios[AudioType::BONE_DESTROYED_1]				= audioPath + "bone_destroyed_1.wav";
 	}
-	void AudioManager::play(AudioType type, bool playLooped) {
-		soundEngine->play2D(audios[type].c_str(), playLooped);
+	void AudioManager::play(AudioType type, bool playLooped, bool isBackground) {
+		if (isBackground) {
+			irrklang::ISound* sound = soundEngine->play2D(audios[type].c_str(), playLooped, false, true);
+			if (sound) {
+				sound->setVolume(0.3f);
+				sound->drop();
+			}
+		}
+		else
+			soundEngine->play2D(audios[type].c_str(), playLooped);
+	}
+
+	void AudioManager::playRandomly(AudioType type, bool playLooped) {
+		std::vector<AudioType> randomAudios;
+		switch (type) {
+			case AudioType::APPLE_EATEN_RANDOM: {
+				randomAudios.push_back(AudioType::APPLE_EATEN_0);
+				randomAudios.push_back(AudioType::APPLE_EATEN_1);
+				randomAudios.push_back(AudioType::APPLE_EATEN_2);
+				break;
+			}
+			case AudioType::CORPSE_EATEN_RANDOM: {
+				randomAudios.push_back(AudioType::CORPSE_EATEN_0);
+				randomAudios.push_back(AudioType::CORPSE_EATEN_1);
+				randomAudios.push_back(AudioType::CORPSE_EATEN_2);
+				break;
+			}
+			case AudioType::BONE_DESTROYED_RANDOM: {
+				randomAudios.push_back(AudioType::BONE_DESTROYED_0);
+				randomAudios.push_back(AudioType::BONE_DESTROYED_1);
+				break;
+			}
+			default:
+				std::cout << "WARNING::Wrong type provided which doesn't support random audio: " << type << std::endl;
+				break;
+		}
+
+		static std::random_device rd;
+		static std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dis(0, randomAudios.size() - 1);
+
+		int randomIndex = dis(gen);
+		AudioType chosenAudio = randomAudios[randomIndex];
+
+		soundEngine->play2D(audios[chosenAudio].c_str(), playLooped);
 	}
 
 	void SettingsManager::readFromFile() {
@@ -326,12 +380,109 @@ namespace Snake2d {
 				}
 				break;
 			}
+			case ParticleType::CORPSE_EATEN: {
+				int eatenCorpseParticles = 5;
+				for (int i = 0; i < eatenCorpseParticles; i++) {
+					std::random_device rd;
+					std::mt19937 gen(rd());
+					std::uniform_real_distribution<float> dist(-0.05f, 0.05f);
+
+					float randomOffsetX = dist(gen);
+					float randomOffsetY = dist(gen);
+
+					clipX += randomOffsetX;
+					clipY += randomOffsetY;
+
+					float life = 2.0f + static_cast<float>(rand()) / RAND_MAX * 0.2f;
+					float maxLife = life;
+					std::uniform_real_distribution<float> speedDist(0.1f, 0.5f);
+					std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * M_PI);
+
+					float angle = angleDist(gen);
+					float speed = speedDist(gen);
+					float size = 0.01f;
+					glm::vec2 offset = glm::vec2(clipX, clipY);
+					glm::vec4 color = glm::vec4(
+						0.5f + dist(gen) * 0.1f,
+						0.9f + dist(gen) * 0.05f,
+						0.2f + dist(gen) * 0.05f,
+						1.0f
+					);
+					glm::vec2 velocity = glm::vec2(cos(angle), sin(angle)) * speed;
+
+					Snake2d::Particle particle = Snake2d::Particle{
+						offset, color, velocity, size, life, maxLife
+					};
+					particlesMap[ParticleType::APPLE_EATEN].push_back(particle);
+
+				}
+				break;
+			}
+			case ParticleType::BONE_DESTROYED: {
+				int boneDestroyedParticles = 5;
+				for (int i = 0; i < boneDestroyedParticles; i++) {
+					std::random_device rd;
+					std::mt19937 gen(rd());
+					std::uniform_real_distribution<float> dist(-0.1f, 0.1f);
+
+					float randomOffsetX = dist(gen);
+					float randomOffsetY = dist(gen);
+
+					clipX += randomOffsetX;
+					clipY += randomOffsetY;
+
+					float life = 2.0f + static_cast<float>(rand()) / RAND_MAX * 0.2f;
+					float maxLife = life;
+					std::uniform_real_distribution<float> speedDist(0.1f, 0.5f);
+					std::uniform_real_distribution<float> angleDist(0.0f, 2.0f * M_PI);
+
+					float angle = angleDist(gen);
+					float speed = speedDist(gen);
+					float size = 0.01f;
+					glm::vec2 offset = glm::vec2(clipX, clipY);
+					glm::vec4 color = glm::vec4(1.0f, 1.0f, 0.9f + dist(gen) * 0.1f, 1.0f);
+					glm::vec2 velocity = glm::vec2(cos(angle), sin(angle)) * speed;
+
+					Snake2d::Particle particle = Snake2d::Particle{
+						offset, color, velocity, size, life, maxLife
+					};
+					particlesMap[ParticleType::APPLE_EATEN].push_back(particle);
+
+				}
+				break;
+			}
 		}
 	}
 	void ParticleManager::update(float deltaTime) {
 		for (auto& [type, particles] : particlesMap) {
 			switch (type) {
 				case ParticleType::APPLE_EATEN: {
+					for (Particle& p : particles) {
+						p.life -= deltaTime;
+						if (p.life > 0.0f) {
+							p.offset += p.velocity * deltaTime;
+
+							float lifeRatio = p.life / p.maxLife;
+							p.color.a = lifeRatio;
+							p.size *= lifeRatio;
+						}
+					}
+					break;
+				}
+				case ParticleType::CORPSE_EATEN: {
+					for (Particle& p : particles) {
+						p.life -= deltaTime;
+						if (p.life > 0.0f) {
+							p.offset += p.velocity * deltaTime;
+
+							float lifeRatio = p.life / p.maxLife;
+							p.color.a = lifeRatio;
+							p.size *= lifeRatio;
+						}
+					}
+					break;
+				}
+				case ParticleType::BONE_DESTROYED: {
 					for (Particle& p : particles) {
 						p.life -= deltaTime;
 						if (p.life > 0.0f) {
