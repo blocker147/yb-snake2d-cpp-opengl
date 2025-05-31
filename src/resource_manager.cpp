@@ -345,6 +345,15 @@ namespace Snake2d {
 		auto [clipX, clipY] = position;
 		constexpr float M_PI = 3.14159265358979323846f;
 
+		int count = 0;
+		for (auto& [_, particles] : particlesMap)
+			count += particles.size();
+
+		if (count >= 450) {
+			std::cout << "WARNING::Exceeded particles limit (450)" << std::endl;
+			return;
+		}
+
 		switch (type) {
 			case ParticleType::APPLE_EATEN: {
 				int eatenAppleParticles = 5; 
